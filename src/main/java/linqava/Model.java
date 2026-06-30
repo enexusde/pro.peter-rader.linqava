@@ -82,6 +82,7 @@ class BankTransferPayment extends Payment {
 }
 
 class CustomerSummary {
+	@SuppressWarnings("PMD.UnusedFormalParameter")
 	CustomerSummary(Object id, Object name, Object orderCount) {
 	}
 }
