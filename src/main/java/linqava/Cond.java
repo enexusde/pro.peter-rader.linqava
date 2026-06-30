@@ -1,3 +1,10 @@
+/*
+ *  _    ___ _  _  ___https://www.e-nexus.de./
+ * | |  |_ _| \| |/ _ \ __ ___ ____ _ 
+ * | |__ | || .` | (_) / _` \ V / _` |
+ * |____|___|_|\_|\__\_\__,_|\_/\__,_|
+ * Queries may not be Strings! (c) 2026
+ */
 package linqava;
 
 import java.util.function.Function;
@@ -5,8 +12,8 @@ import java.util.function.Function;
 /**
  * The condition context (the {@code $} of a {@code WHERE}/{@code ON}/{@code HAVING}/{@code WHEN}
  * lambda). Comparison operators are methods named with Unicode glyphs that are valid Java
- * identifiers: {@code 二} (=), {@code ᐸ} (&lt;), {@code ᐳ} (&gt;), {@code ᐸ二} (&lt;=),
- * {@code ᐳ二} (&gt;=), {@code ᐸᐳ} (&lt;&gt;).
+ * identifiers: {@code ᆖ} (=), {@code ᐸ} (&lt;), {@code ᐳ} (&gt;), {@code ᐸᆖ} (&lt;=),
+ * {@code ᐳᆖ} (&gt;=), {@code ᐸᐳ} (&lt;&gt;).
  *
  * <p>Each comparison/predicate has two overloads: a bare {@link Col} reference (type-checked against
  * its entity) as the left operand, or an {@link Object} ({@link Expr}, sub-query {@link Q}, literal
@@ -15,7 +22,7 @@ import java.util.function.Function;
  * <p>Predicates accumulate: each call appends its predicate to the context joined by the pending
  * connector (default {@code and}; switch with {@link #AND()} / {@link #OR()}). Example:</p>
  * <pre>{@code
- * $ -> $.二(Order::status, "PAID").AND().ᐳ(Order::total, 100)
+ * $ -> $.ᆖ(Order::status, "PAID").AND().ᐳ(Order::total, 100)
  * // o.status = 'PAID' and o.total > 100
  * }</pre>
  *
@@ -50,14 +57,14 @@ public final class Cond {
 	// ===== comparison glyph operators =====
 
 	/**
-	 * Equality ({@code =}), e.g. {@code $.二(Order::status, "PAID")} &rarr; {@code o.status = 'PAID'}.
+	 * Equality ({@code =}), e.g. {@code $.ᆖ(Order::status, "PAID")} &rarr; {@code o.status = 'PAID'}.
 	 *
 	 * @param l   the left column getter (method reference); must not be {@code null}
 	 * @param r   the right operand (Expr/param/sub-query/literal); must not be {@code null}
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond 二(Col<T> l, Object r) { return add(cmp(col(l), "=", r)); }
+	public <T> Cond ᆖ(Col<T> l, Object r) { return add(cmp(col(l), "=", r)); }
 
 	/**
 	 * Equality ({@code =}) with an expression left operand.
@@ -66,7 +73,7 @@ public final class Cond {
 	 * @param r the right operand; must not be {@code null}
 	 * @return this context, for chaining
 	 */
-	public Cond 二(Object l, Object r) { return add(cmp(Expr.val(l), "=", r)); }
+	public Cond ᆖ(Object l, Object r) { return add(cmp(Expr.val(l), "=", r)); }
 
 	/**
 	 * Less-than ({@code <}), e.g. {@code $.ᐸ(Order::discount, 5)} &rarr; {@code o.discount < 5}.
@@ -107,14 +114,14 @@ public final class Cond {
 	public Cond ᐳ(Object l, Object r) { return add(cmp(Expr.val(l), ">", r)); }
 
 	/**
-	 * Less-than-or-equal ({@code <=}), e.g. {@code $.ᐸ二(Order::discount, 50)} &rarr; {@code o.discount <= 50}.
+	 * Less-than-or-equal ({@code <=}), e.g. {@code $.ᐸᆖ(Order::discount, 50)} &rarr; {@code o.discount <= 50}.
 	 *
 	 * @param l   the left column getter; must not be {@code null}
 	 * @param r   the right operand; must not be {@code null}
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐸ二(Col<T> l, Object r) { return add(cmp(col(l), "<=", r)); }
+	public <T> Cond ᐸᆖ(Col<T> l, Object r) { return add(cmp(col(l), "<=", r)); }
 
 	/**
 	 * Less-than-or-equal ({@code <=}) with an expression left operand.
@@ -123,17 +130,17 @@ public final class Cond {
 	 * @param r the right operand; must not be {@code null}
 	 * @return this context, for chaining
 	 */
-	public Cond ᐸ二(Object l, Object r) { return add(cmp(Expr.val(l), "<=", r)); }
+	public Cond ᐸᆖ(Object l, Object r) { return add(cmp(Expr.val(l), "<=", r)); }
 
 	/**
-	 * Greater-than-or-equal ({@code >=}), e.g. {@code $.ᐳ二(Order::total, 1000)} &rarr; {@code o.total >= 1000}.
+	 * Greater-than-or-equal ({@code >=}), e.g. {@code $.ᐳᆖ(Order::total, 1000)} &rarr; {@code o.total >= 1000}.
 	 *
 	 * @param l   the left column getter; must not be {@code null}
 	 * @param r   the right operand; must not be {@code null}
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐳ二(Col<T> l, Object r) { return add(cmp(col(l), ">=", r)); }
+	public <T> Cond ᐳᆖ(Col<T> l, Object r) { return add(cmp(col(l), ">=", r)); }
 
 	/**
 	 * Greater-than-or-equal ({@code >=}) with an expression left operand.
@@ -142,7 +149,7 @@ public final class Cond {
 	 * @param r the right operand; must not be {@code null}
 	 * @return this context, for chaining
 	 */
-	public Cond ᐳ二(Object l, Object r) { return add(cmp(Expr.val(l), ">=", r)); }
+	public Cond ᐳᆖ(Object l, Object r) { return add(cmp(Expr.val(l), ">=", r)); }
 
 	/**
 	 * Not-equal ({@code <>}), e.g. {@code $.ᐸᐳ(Order::status, "CANCELLED")} &rarr; {@code o.status <> 'CANCELLED'}.

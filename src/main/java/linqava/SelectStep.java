@@ -1,3 +1,10 @@
+/*
+ *  _    ___ _  _  ___https://www.e-nexus.de./
+ * | |  |_ _| \| |/ _ \ __ ___ ____ _ 
+ * | |__ | || .` | (_) / _` \ V / _` |
+ * |____|___|_|\_|\__\_\__,_|\_/\__,_|
+ * Queries may not be Strings! (c) 2026
+ */
 package linqava;
 
 /**
@@ -11,6 +18,19 @@ public final class SelectStep {
 
 	SelectStep(Q q) {
 		this.q = q;
+	}
+
+	/**
+	 * Aliases the most recently added {@code SELECT} expression.
+	 *
+	 * <p>Example: {@code SELECT(User::id).AS("idx").FROM(User.class)} &rarr; {@code select id as idx from User}.</p>
+	 *
+	 * @param alias the alias name; must not be {@code null} or blank
+	 * @return this phase, for chaining further {@code AS}/{@code FROM}
+	 */
+	public SelectStep AS(String alias) {
+		q.aliasLastSelect(alias);
+		return this;
 	}
 
 	/**

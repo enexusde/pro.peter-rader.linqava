@@ -1,3 +1,10 @@
+/*
+ *  _    ___ _  _  ___https://www.e-nexus.de./
+ * | |  |_ _| \| |/ _ \ __ ___ ____ _ 
+ * | |__ | || .` | (_) / _` \ V / _` |
+ * |____|___|_|\_|\__\_\__,_|\_/\__,_|
+ * Queries may not be Strings! (c) 2026
+ */
 package linqava;
 
 import java.util.ArrayList;
@@ -17,8 +24,8 @@ import java.util.function.Function;
  * {@code ELSE} only {@link End#END() END} remains.</p>
  *
  * <pre>{@code
- * CASE().WHEN($ -> $.ᐳ二(Order::total, 1000)).THEN("GOLD")
- *       .WHEN($ -> $.ᐳ二(Order::total, 100)).THEN("SILVER")
+ * CASE().WHEN($ -> $.ᐳᆖ(Order::total, 1000)).THEN("GOLD")
+ *       .WHEN($ -> $.ᐳᆖ(Order::total, 100)).THEN("SILVER")
  *       .ELSE("BRONZE").END()
  * }</pre>
  */

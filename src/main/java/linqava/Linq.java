@@ -1,3 +1,10 @@
+/*
+ *  _    ___ _  _  ___https://www.e-nexus.de./
+ * | |  |_ _| \| |/ _ \ __ ___ ____ _ 
+ * | |__ | || .` | (_) / _` \ V / _` |
+ * |____|___|_|\_|\__\_\__,_|\_/\__,_|
+ * Queries may not be Strings! (c) 2026
+ */
 package linqava;
 
 /**
@@ -9,7 +16,7 @@ package linqava;
  *
  * Q q = SELECT(c(User::id))
  *           .FROM(User.class)
- *           .WHERE($ -> $.二(User::Name, "John"));
+ *           .WHERE($ -> $.ᆖ(User::Name, "John"));
  * q.getHql(); // "select id from User where Name = 'John'"
  * }</pre>
  *
@@ -110,14 +117,28 @@ public final class Linq {
 	/**
 	 * A column referenced by raw name — for derived/CTE/aliased columns that have no entity getter.
 	 *
-	 * <p>Example: {@code c("a.name")} &rarr; {@code a.name}; {@code c("orderCount")} &rarr; {@code orderCount}.</p>
+	 * <p>Example: {@code c("orderCount")} &rarr; {@code orderCount}.</p>
 	 *
 	 * @param derivedColumn the literal column text emitted verbatim into the HQL; must not be
-	 *                      {@code null}, e.g. {@code "a.name"}
+	 *                      {@code null}, e.g. {@code "orderCount"}
 	 * @return the column as an {@link Expr}
 	 */
 	public static Expr c(String derivedColumn) {
 		return Expr.of(ctx -> derivedColumn);
+	}
+
+	/**
+	 * A column qualified with an explicit alias and a raw field name — for CTE/derived columns that
+	 * have no entity getter.
+	 *
+	 * <p>Example: {@code c("a", "name")} &rarr; {@code a.name}.</p>
+	 *
+	 * @param alias the range-variable alias; must not be {@code null}, e.g. {@code "a"}
+	 * @param field the field name; must not be {@code null}, e.g. {@code "name"}
+	 * @return the aliased column as an {@link Expr}
+	 */
+	public static Expr c(String alias, String field) {
+		return Expr.of(ctx -> alias + "." + field);
 	}
 
 	/**
@@ -462,7 +483,7 @@ public final class Linq {
 	/**
 	 * Equality predicate ({@code =}) with a type-safe left column.
 	 *
-	 * <p>Example: {@code 二(Order::status, "PAID")} &rarr; {@code o.status = 'PAID'}.</p>
+	 * <p>Example: {@code ᆖ(Order::status, "PAID")} &rarr; {@code o.status = 'PAID'}.</p>
 	 *
 	 * @param l   the left column getter (method reference); must not be {@code null}
 	 * @param r   the right operand: an {@link Expr}, a {@link #param(String)}, a sub-query {@link Q}
@@ -471,16 +492,16 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate; combine with {@link #AND(Cond...)} / {@link #OR(Cond...)}
 	 */
-	public static <T> Cond 二(Col<T> l, Object r) { return new Cond().二(l, r); }   // =
+	public static <T> Cond ᆖ(Col<T> l, Object r) { return new Cond().ᆖ(l, r); }   // =
 
 	/**
 	 * Equality predicate ({@code =}) with an expression left operand.
 	 *
 	 * @param l the left operand (e.g. an aggregate {@link Expr}); must not be {@code null}
-	 * @param r the right operand (see {@link #二(Col, Object)}); {@code null} renders as literal {@code null}
+	 * @param r the right operand (see {@link #ᆖ(Col, Object)}); {@code null} renders as literal {@code null}
 	 * @return a leaf predicate
 	 */
-	public static Cond 二(Object l, Object r) { return new Cond().二(l, r); }
+	public static Cond ᆖ(Object l, Object r) { return new Cond().ᆖ(l, r); }
 
 	/**
 	 * Less-than predicate ({@code <}) with a type-safe left column.
@@ -527,14 +548,14 @@ public final class Linq {
 	/**
 	 * Less-than-or-equal predicate ({@code <=}) with a type-safe left column.
 	 *
-	 * <p>Example: {@code ᐸ二(Order::discount, 50)} &rarr; {@code o.discount <= 50}.</p>
+	 * <p>Example: {@code ᐸᆖ(Order::discount, 50)} &rarr; {@code o.discount <= 50}.</p>
 	 *
 	 * @param l   the left column getter; must not be {@code null}
 	 * @param r   the right operand; must not be {@code null}
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ᐸ二(Col<T> l, Object r) { return new Cond().ᐸ二(l, r); } // <=
+	public static <T> Cond ᐸᆖ(Col<T> l, Object r) { return new Cond().ᐸᆖ(l, r); } // <=
 
 	/**
 	 * Less-than-or-equal predicate ({@code <=}) with an expression left operand.
@@ -543,19 +564,19 @@ public final class Linq {
 	 * @param r the right operand; must not be {@code null}
 	 * @return a leaf predicate
 	 */
-	public static Cond ᐸ二(Object l, Object r) { return new Cond().ᐸ二(l, r); }
+	public static Cond ᐸᆖ(Object l, Object r) { return new Cond().ᐸᆖ(l, r); }
 
 	/**
 	 * Greater-than-or-equal predicate ({@code >=}) with a type-safe left column.
 	 *
-	 * <p>Example: {@code ᐳ二(Order::total, 1000)} &rarr; {@code o.total >= 1000}.</p>
+	 * <p>Example: {@code ᐳᆖ(Order::total, 1000)} &rarr; {@code o.total >= 1000}.</p>
 	 *
 	 * @param l   the left column getter; must not be {@code null}
 	 * @param r   the right operand; must not be {@code null}
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ᐳ二(Col<T> l, Object r) { return new Cond().ᐳ二(l, r); } // >=
+	public static <T> Cond ᐳᆖ(Col<T> l, Object r) { return new Cond().ᐳᆖ(l, r); } // >=
 
 	/**
 	 * Greater-than-or-equal predicate ({@code >=}) with an expression left operand.
@@ -564,7 +585,7 @@ public final class Linq {
 	 * @param r the right operand; must not be {@code null}
 	 * @return a leaf predicate
 	 */
-	public static Cond ᐳ二(Object l, Object r) { return new Cond().ᐳ二(l, r); }
+	public static Cond ᐳᆖ(Object l, Object r) { return new Cond().ᐳᆖ(l, r); }
 
 	/**
 	 * Not-equal predicate ({@code <>}) with a type-safe left column.
@@ -590,7 +611,7 @@ public final class Linq {
 	/**
 	 * Conjunction of predicates ({@code and}), parenthesized as a group.
 	 *
-	 * <p>Example: {@code AND(二(Order::status, "PAID"), ᐳ(Order::total, 100))}
+	 * <p>Example: {@code AND(ᆖ(Order::status, "PAID"), ᐳ(Order::total, 100))}
 	 * &rarr; {@code (o.status = 'PAID' and o.total > 100)}.</p>
 	 *
 	 * @param parts the predicates to combine, in order; must not be {@code null} and must contain at
@@ -614,7 +635,7 @@ public final class Linq {
 	/**
 	 * Negation of a predicate ({@code not (...)}).
 	 *
-	 * <p>Example: {@code NOT(二(Order::status, "PAID"))} &rarr; {@code not (o.status = 'PAID')}.</p>
+	 * <p>Example: {@code NOT(ᆖ(Order::status, "PAID"))} &rarr; {@code not (o.status = 'PAID')}.</p>
 	 *
 	 * @param predicate the predicate to negate; must not be {@code null}
 	 * @return the negated predicate
@@ -626,7 +647,7 @@ public final class Linq {
 	/**
 	 * Starts a {@code CASE WHEN ... THEN ... [ELSE ...] END} expression.
 	 *
-	 * <p>Example: {@code CASE().WHEN($ -> $.ᐳ二(Order::total, 1000)).THEN("GOLD").ELSE("BRONZE").END()}.</p>
+	 * <p>Example: {@code CASE().WHEN($ -> $.ᐳᆖ(Order::total, 1000)).THEN("GOLD").ELSE("BRONZE").END()}.</p>
 	 *
 	 * @return a new {@link Case} builder
 	 */

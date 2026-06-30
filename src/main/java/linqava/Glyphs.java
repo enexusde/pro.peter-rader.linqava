@@ -1,3 +1,10 @@
+/*
+ *  _    ___ _  _  ___https://www.e-nexus.de./
+ * | |  |_ _| \| |/ _ \ __ ___ ____ _ 
+ * | |__ | || .` | (_) / _` \ V / _` |
+ * |____|___|_|\_|\__\_\__,_|\_/\__,_|
+ * Queries may not be Strings! (c) 2026
+ */
 package linqava;
 
 /**
@@ -11,11 +18,11 @@ package linqava;
  * <table border="1">
  *   <caption>SQL token &rarr; Java glyph</caption>
  *   <tr><th>SQL</th><th>Glyph</th><th>Code point</th><th>Unicode name</th><th>Category</th></tr>
- *   <tr><td>=</td>  <td>二</td><td>U+4E8C</td><td>CJK IDEOGRAPH "TWO" (two strokes)</td><td>Lo</td></tr>
+ *   <tr><td>=</td>  <td>ᆖ</td><td>U+4E8C</td><td>CJK IDEOGRAPH "TWO" (two strokes)</td><td>Lo</td></tr>
  *   <tr><td>&lt;</td><td>ᐸ</td><td>U+1438</td><td>CANADIAN SYLLABICS PA</td><td>Lo</td></tr>
  *   <tr><td>&gt;</td><td>ᐳ</td><td>U+1433</td><td>CANADIAN SYLLABICS PO</td><td>Lo</td></tr>
- *   <tr><td>&lt;=</td><td>ᐸ二</td><td>U+1438 U+4E8C</td><td>(&lt; followed by =)</td><td>Lo</td></tr>
- *   <tr><td>&gt;=</td><td>ᐳ二</td><td>U+1433 U+4E8C</td><td>(&gt; followed by =)</td><td>Lo</td></tr>
+ *   <tr><td>&lt;=</td><td>ᐸᆖ</td><td>U+1438 U+4E8C</td><td>(&lt; followed by =)</td><td>Lo</td></tr>
+ *   <tr><td>&gt;=</td><td>ᐳᆖ</td><td>U+1433 U+4E8C</td><td>(&gt; followed by =)</td><td>Lo</td></tr>
  *   <tr><td>&lt;&gt;</td><td>ᐸᐳ</td><td>U+1438 U+1433</td><td>(&lt; followed by &gt;)</td><td>Lo</td></tr>
  *   <tr><td>+</td>  <td>ᐩ</td><td>U+1429</td><td>CANADIAN SYLLABICS FINAL PLUS</td><td>Lo</td></tr>
  *   <tr><td>-</td>  <td>ｰ</td><td>U+FF70</td><td>HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK</td><td>Lm</td></tr>
@@ -25,7 +32,7 @@ package linqava;
  * </table>
  *
  * <p>Note: U+A78A "MODIFIER LETTER SHORT EQUALS SIGN" looks like the perfect "=" but is category
- * {@code Sk} and therefore rejected by Java; hence {@code 二} (U+4E8C) is used for "=".</p>
+ * {@code Sk} and therefore rejected by Java; hence {@code ᆖ} (U+4E8C) is used for "=".</p>
  */
 public final class Glyphs {
 
@@ -33,15 +40,15 @@ public final class Glyphs {
 	}
 
 	/** Glyph for {@code =} (U+4E8C). */
-	public static final String EQ  = "二";
+	public static final String EQ  = "ᆖ";
 	/** Glyph for {@code <} (U+1438). */
 	public static final String LT  = "ᐸ";
 	/** Glyph for {@code >} (U+1433). */
 	public static final String GT  = "ᐳ";
 	/** Glyph for {@code <=} (U+1438 U+4E8C). */
-	public static final String LE  = "ᐸ二";
+	public static final String LE  = "ᐸᆖ";
 	/** Glyph for {@code >=} (U+1433 U+4E8C). */
-	public static final String GE  = "ᐳ二";
+	public static final String GE  = "ᐳᆖ";
 	/** Glyph for {@code <>} (U+1438 U+1433). */
 	public static final String NE  = "ᐸᐳ";
 	/** Glyph for {@code +} (U+1429). */

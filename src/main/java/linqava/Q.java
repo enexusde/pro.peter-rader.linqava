@@ -1,3 +1,10 @@
+/*
+ *  _    ___ _  _  ___https://www.e-nexus.de./
+ * | |  |_ _| \| |/ _ \ __ ___ ____ _ 
+ * | |__ | || .` | (_) / _` \ V / _` |
+ * |____|___|_|\_|\__\_\__,_|\_/\__,_|
+ * Queries may not be Strings! (c) 2026
+ */
 package linqava;
 
 import java.util.ArrayList;
@@ -87,6 +94,12 @@ public final class Q {
 		return this;
 	}
 
+	Q aliasLastSelect(String alias) {
+		int last = select.size() - 1;
+		select.set(last, select.get(last).AS(alias));
+		return this;
+	}
+
 	Q addCte(String name, Q definition, boolean recursiveCte) {
 		if (recursiveCte) {
 			recursive = true;
@@ -172,7 +185,7 @@ public final class Q {
 	/**
 	 * The {@code on} condition for the most recently added join, built via a lambda.
 	 *
-	 * <p>Example: {@code .JOIN(Customer.class).AS("c").ON($ -> $.二(Customer::id, c("o", Order::customerId)))}.</p>
+	 * <p>Example: {@code .JOIN(Customer.class).AS("c").ON($ -> $.ᆖ(Customer::id, c("o", Order::customerId)))}.</p>
 	 *
 	 * @param predicate builds the condition from a fresh {@link Cond}; must not be {@code null}
 	 * @return this builder, for chaining
@@ -185,7 +198,7 @@ public final class Q {
 
 	/**
 	 * The {@code on} condition for the most recently added join, from a pre-built predicate
-	 * (see {@link Linq#AND(Cond...)} / {@link Linq#二(Col, Object)}).
+	 * (see {@link Linq#AND(Cond...)} / {@link Linq#ᆖ(Col, Object)}).
 	 *
 	 * @param predicate the join condition; must not be {@code null}
 	 * @return this builder, for chaining
@@ -199,7 +212,7 @@ public final class Q {
 	/**
 	 * The {@code where} clause, built via a lambda on a fresh condition context.
 	 *
-	 * <p>Example: {@code WHERE($ -> $.二(User::Name, "John"))} &rarr; {@code where Name = 'John'}.</p>
+	 * <p>Example: {@code WHERE($ -> $.ᆖ(User::Name, "John"))} &rarr; {@code where Name = 'John'}.</p>
 	 *
 	 * @param predicate builds the condition from a fresh {@link Cond}; must not be {@code null}
 	 * @return this builder, for chaining
@@ -213,7 +226,7 @@ public final class Q {
 	 * The {@code where} clause from a pre-built predicate — convenient for flat, lambda-free
 	 * composition with {@link Linq#AND(Cond...)} / {@link Linq#OR(Cond...)}.
 	 *
-	 * <p>Example: {@code WHERE(AND(二(Order::status, "PAID"), ᐳ(Order::total, 100)))}.</p>
+	 * <p>Example: {@code WHERE(AND(ᆖ(Order::status, "PAID"), ᐳ(Order::total, 100)))}.</p>
 	 *
 	 * @param predicate the condition; must not be {@code null}
 	 * @return this builder, for chaining
@@ -309,7 +322,7 @@ public final class Q {
 	/**
 	 * Renders this finished statement to its HQL string.
 	 *
-	 * <p>Example: {@code SELECT(c(User::id)).FROM(User.class).WHERE($ -> $.二(User::Name, "John")).getHql()}
+	 * <p>Example: {@code SELECT(c(User::id)).FROM(User.class).WHERE($ -> $.ᆖ(User::Name, "John")).getHql()}
 	 * returns {@code "select id from User where Name = 'John'"}.</p>
 	 *
 	 * @return the HQL text; never {@code null}. ({@code SELECT} and {@code FROM} are guaranteed by the
