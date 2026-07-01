@@ -7,7 +7,7 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>Linqava</name>
 	<description>Fluent type-safe HQL/JPQL query builder for JPA</description>
-	<url>https://github.com/enexusde/de.e-nexus.linqava</url>
+	<url>https://github.com/enexusde/pro.peter-rader.linqava</url>
 
 	<properties>
 		<java.version>17</java.version>
@@ -34,9 +34,9 @@
 	</developers>
 
 	<scm>
-		<connection>scm:git:https://github.com/enexusde/de.e-nexus.linqava.git</connection>
-		<developerConnection>scm:git:https://github.com/enexusde/de.e-nexus.linqava.git</developerConnection>
-		<url>https://github.com/enexusde/de.e-nexus.linqava</url>
+		<connection>scm:git:https://github.com/enexusde/pro.peter-rader.linqava.git</connection>
+		<developerConnection>scm:git:https://github.com/enexusde/pro.peter-rader.linqava.git</developerConnection>
+		<url>https://github.com/enexusde/pro.peter-rader.linqava</url>
 		<tag>HEAD</tag>
 	</scm>
 
