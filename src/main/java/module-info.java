@@ -5,7 +5,7 @@
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
  */
-module de.e_nexus.linqava {
+module pro.peter_rader.linqava {
 	exports linqava;
 
 	requires jakarta.persistence;
