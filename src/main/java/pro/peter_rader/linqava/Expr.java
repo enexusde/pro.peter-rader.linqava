@@ -149,6 +149,16 @@ public abstract class Expr {
 	/** Coerce an arbitrary value into an expression: Expr as-is, sub-query in parentheses,
 	 *  everything else a {@link LiteralExpr}. */
 	static Expr val(Object o) {
+		return val(o, null);
+	}
+
+	/**
+	 * Like {@link #val(Object)}, but attaches a bind-parameter name hint for {@link Q#via} — see
+	 * {@link LiteralExpr}. Callers that know which column {@code o} is being compared against (e.g.
+	 * {@code WHERE(Order::total).ᐳ(100)}) pass that column's property name; everyone else passes
+	 * {@code null} and gets the numbered fallback.
+	 */
+	static Expr val(Object o, String hint) {
 		if (o instanceof Expr) {
 			return (Expr) o;
 		}
@@ -156,7 +166,7 @@ public abstract class Expr {
 			Q q = (Q) o;
 			return of(c -> "(" + q.hqlFor(c.collector()) + ")");
 		}
-		return new LiteralExpr(o);
+		return new LiteralExpr(o, hint);
 	}
 
 	/**
@@ -164,21 +174,24 @@ public abstract class Expr {
 	 * carries a {@link ParamCollector} (i.e. while {@link Q#via} builds its parameterized query) and
 	 * the value isn't {@code null}; otherwise renders inline exactly like {@code getHql()} always has
 	 * (quoted for {@link String}, verbatim via {@link String#valueOf(Object)} otherwise — {@code null}
-	 * always renders as the SQL {@code null} literal).
+	 * always renders as the SQL {@code null} literal). {@code hint}, when non-{@code null}, names the
+	 * invented bind parameter after the compared-against column instead of a bare counter.
 	 */
 	static final class LiteralExpr extends Expr {
 
 		private final Object value;
+		private final String hint;
 
-		LiteralExpr(Object value) {
+		LiteralExpr(Object value, String hint) {
 			this.value = value;
+			this.hint = hint;
 		}
 
 		@Override
 		String render(RenderCtx ctx) {
 			ParamCollector collector = ctx.collector();
 			if (value != null && collector != null) {
-				return ":" + collector.next(value);
+				return ":" + collector.next(value, hint);
 			}
 			if (value instanceof String) {
 				return "'" + value + "'";

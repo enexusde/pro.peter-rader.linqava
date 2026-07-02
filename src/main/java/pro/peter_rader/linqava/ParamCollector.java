@@ -18,10 +18,27 @@ import java.util.Map;
 final class ParamCollector {
 
 	private final Map<String, Object> params = new LinkedHashMap<>();
+	private int autoCounter;
 
-	/** Registers {@code value} under a freshly invented name and returns that name. */
-	String next(Object value) {
-		String name = "__p" + params.size();
+	/**
+	 * Registers {@code value} under a freshly invented name and returns that name.
+	 *
+	 * @param hint the property name of the column this value was compared against, if known; {@code
+	 *             null} falls back to a numbered name ({@code __p0}, {@code __p1}, ...). A non-{@code
+	 *             null} hint yields {@code "__" + hint}, disambiguated with a numeric suffix
+	 *             ({@code __total}, {@code __total2}, ...) if that name was already used in this query.
+	 */
+	String next(Object value, String hint) {
+		String name;
+		if (hint == null) {
+			name = "__p" + autoCounter++;
+		} else {
+			name = "__" + hint;
+			int suffix = 2;
+			while (params.containsKey(name)) {
+				name = "__" + hint + suffix++;
+			}
+		}
 		params.put(name, value);
 		return name;
 	}

@@ -57,7 +57,11 @@ public final class Cond {
 	}
 
 	private static Expr cmp(Expr left, String op, Object right) {
-		Expr r = Expr.val(right);
+		return cmp(left, op, right, null);
+	}
+
+	private static Expr cmp(Expr left, String op, Object right, String hint) {
+		Expr r = Expr.val(right, hint);
 		return Expr.of(c -> left.render(c) + " " + op + " " + r.render(c));
 	}
 
@@ -71,7 +75,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᆖ(Col<T> l, Object r) { return add(cmp(col(l), "=", r)); }
+	public <T> Cond ᆖ(Col<T> l, Object r) { return add(cmp(col(l), "=", r, Names.property(l))); }
 
 	/**
 	 * Equality ({@code =}) with an expression left operand.
@@ -98,7 +102,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐸ(Col<T> l, Object r) { return add(cmp(col(l), "<", r)); }
+	public <T> Cond ᐸ(Col<T> l, Object r) { return add(cmp(col(l), "<", r, Names.property(l))); }
 
 	/**
 	 * Less-than ({@code <}) with an expression left operand.
@@ -125,7 +129,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐳ(Col<T> l, Object r) { return add(cmp(col(l), ">", r)); }
+	public <T> Cond ᐳ(Col<T> l, Object r) { return add(cmp(col(l), ">", r, Names.property(l))); }
 
 	/**
 	 * Greater-than ({@code >}) with an expression left operand.
@@ -153,7 +157,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐸᆖ(Col<T> l, Object r) { return add(cmp(col(l), "<=", r)); }
+	public <T> Cond ᐸᆖ(Col<T> l, Object r) { return add(cmp(col(l), "<=", r, Names.property(l))); }
 
 	/**
 	 * Less-than-or-equal ({@code <=}) with an expression left operand.
@@ -180,7 +184,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐳᆖ(Col<T> l, Object r) { return add(cmp(col(l), ">=", r)); }
+	public <T> Cond ᐳᆖ(Col<T> l, Object r) { return add(cmp(col(l), ">=", r, Names.property(l))); }
 
 	/**
 	 * Greater-than-or-equal ({@code >=}) with an expression left operand.
@@ -207,7 +211,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐸᐳ(Col<T> l, Object r) { return add(cmp(col(l), "<>", r)); }
+	public <T> Cond ᐸᐳ(Col<T> l, Object r) { return add(cmp(col(l), "<>", r, Names.property(l))); }
 
 	/**
 	 * Not-equal ({@code <>}) with an expression left operand.
@@ -237,7 +241,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond IN(Col<T> l, Object r) { return add(cmp(col(l), "in", r)); }
+	public <T> Cond IN(Col<T> l, Object r) { return add(cmp(col(l), "in", r, Names.property(l))); }
 
 	/**
 	 * Membership test ({@code in (...)}) with an expression left operand.
@@ -256,7 +260,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond LIKE(Col<T> l, Object r) { return add(cmp(col(l), "like", r)); }
+	public <T> Cond LIKE(Col<T> l, Object r) { return add(cmp(col(l), "like", r, Names.property(l))); }
 
 	/**
 	 * Pattern match ({@code like}) with an expression left operand.

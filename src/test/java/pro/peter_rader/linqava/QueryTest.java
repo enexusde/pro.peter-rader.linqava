@@ -408,8 +408,9 @@ public class QueryTest {
 		q.via(fakeEntityManager(new String[1], Collections.emptyList()));
 	}
 
-	// via(EntityManager) binds bare literal values as invented :__pN parameters and
-	// leaves param(...) placeholders untouched; getHql() keeps inlining literals as
+	// via(EntityManager) binds bare literal values as invented :__<property>
+	// parameters (named after the column they're compared against) and leaves
+	// param(...) placeholders untouched; getHql() keeps inlining literals as
 	// before.
 	@Test
 	public void testViaBindsLiteralValuesAsParameters() {
@@ -423,8 +424,86 @@ public class QueryTest {
 
 		q.via(em);
 
-		assertEquals("select o from Order o where o.status = :__p0 and o.total > :minTotal", capturedHql[0]);
-		assertEquals(Collections.singletonMap("__p0", "PAID"), capturedParams);
+		assertEquals("select o from Order o where o.status = :__status and o.total > :minTotal", capturedHql[0]);
+		assertEquals(Collections.singletonMap("__status", "PAID"), capturedParams);
+	}
+
+	// via(EntityManager) binds every literal in the query to a parameter named
+	// after the column it's compared against (in rendering order), leaves
+	// param(...) untouched, still returns the entity manager's result list, and
+	// starts a fresh parameter namespace on every call (no state leaking between
+	// two via() invocations).
+	@Test
+	public void testViaBindsMultipleParametersCorrectlyAndRepeatably() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤWHEREㅤ(Order::status).ㅤᆖㅤ("PAID")
+				.ㅤANDㅤ(Order::total).ㅤᐳㅤ(100).ㅤANDㅤ(Order::customerId).ㅤᆖㅤ(param("cust"));
+		assertEquals("select o from Order o where o.status = 'PAID' and o.total > 100 and o.customerId = :cust",
+				q.getHql());
+
+		List<Order> expected = Arrays.asList(new Order(), new Order());
+
+		for (int run = 0; run < 2; run++) {
+			String[] capturedHql = new String[1];
+			Map<String, Object> capturedParams = new HashMap<>();
+			EntityManager em = fakeEntityManager(capturedHql, expected, capturedParams);
+
+			Iterable<Order> result = q.via(em);
+
+			assertEquals("run " + run,
+					"select o from Order o where o.status = :__status and o.total > :__total and o.customerId = :cust",
+					capturedHql[0]);
+			Map<String, Object> expectedParams = new HashMap<>();
+			expectedParams.put("__status", "PAID");
+			expectedParams.put("__total", 100);
+			assertEquals("run " + run, expectedParams, capturedParams);
+
+			Iterator<Order> iterator = result.iterator();
+			assertTrue(iterator.hasNext());
+			iterator.next();
+			assertTrue(iterator.hasNext());
+			iterator.next();
+			assertFalse(iterator.hasNext());
+		}
+	}
+
+	// via(EntityManager) disambiguates two literals compared against the same
+	// column with a numeric suffix (__total, __total2, ...).
+	@Test
+	public void testViaDisambiguatesCollidingParameterNames() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤWHEREㅤ(Order::total).ㅤᐳㅤ(100)
+				.ㅤANDㅤ(Order::total).ㅤᐸㅤ(1000);
+		assertEquals("select o from Order o where o.total > 100 and o.total < 1000", q.getHql());
+
+		String[] capturedHql = new String[1];
+		Map<String, Object> capturedParams = new HashMap<>();
+		EntityManager em = fakeEntityManager(capturedHql, Collections.emptyList(), capturedParams);
+
+		q.via(em);
+
+		assertEquals("select o from Order o where o.total > :__total and o.total < :__total2", capturedHql[0]);
+		Map<String, Object> expectedParams = new HashMap<>();
+		expectedParams.put("__total", 100);
+		expectedParams.put("__total2", 1000);
+		assertEquals(expectedParams, capturedParams);
+	}
+
+	// via(EntityManager) falls back to a numbered :__pN name when the literal
+	// isn't compared against a single known column (here: a HAVING clause led by
+	// an aggregate).
+	@Test
+	public void testViaFallsBackToNumberedNameWithoutColumnHint() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").GROUPㅤBY(Order::customerId)
+				.HAVING(SUM(Order::total)).ㅤᐳㅤ(1000);
+		assertEquals("select o from Order o group by o.customerId having sum(o.total) > 1000", q.getHql());
+
+		String[] capturedHql = new String[1];
+		Map<String, Object> capturedParams = new HashMap<>();
+		EntityManager em = fakeEntityManager(capturedHql, Collections.emptyList(), capturedParams);
+
+		q.via(em);
+
+		assertEquals("select o from Order o group by o.customerId having sum(o.total) > :__p0", capturedHql[0]);
+		assertEquals(Collections.singletonMap("__p0", 1000), capturedParams);
 	}
 
 	// SELECT c FROM Car c WHERE c.driver.id > 0 AND c.plate.id > 0

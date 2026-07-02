@@ -235,7 +235,7 @@ public final class Q<E> {
 	 */
 	public <T> WhereStep<E> ㅤONㅤ(Col<T> col) {
 		Join j = joins.get(joins.size() - 1);
-		return new WhereStep<>(Expr.col(col), "and", (predicate, connector) -> {
+		return new WhereStep<>(Expr.col(col), Names.property(col), "and", (predicate, connector) -> {
 			j.on = predicate;
 			return this;
 		});
@@ -266,7 +266,7 @@ public final class Q<E> {
 	 * @return the pending comparison, awaiting an operator
 	 */
 	public <T> WhereStep<E> ㅤWHEREㅤ(Col<T> col) {
-		return where(Expr.col(col), "and");
+		return where(Expr.col(col), Names.property(col), "and");
 	}
 
 	/**
@@ -280,7 +280,7 @@ public final class Q<E> {
 	 * @return the pending comparison, awaiting an operator
 	 */
 	public WhereStep<E> ㅤWHEREㅤ(Object left) {
-		return where(Expr.val(left), "and");
+		return where(Expr.val(left), null, "and");
 	}
 
 	/**
@@ -294,7 +294,7 @@ public final class Q<E> {
 	 * @return the pending comparison, awaiting an operator
 	 */
 	public <T> WhereStep<E> ㅤANDㅤ(Col<T> col) {
-		return where(Expr.col(col), "and");
+		return where(Expr.col(col), Names.property(col), "and");
 	}
 
 	/**
@@ -304,7 +304,7 @@ public final class Q<E> {
 	 * @return the pending comparison, awaiting an operator
 	 */
 	public WhereStep<E> ㅤANDㅤ(Object left) {
-		return where(Expr.val(left), "and");
+		return where(Expr.val(left), null, "and");
 	}
 
 	/**
@@ -316,7 +316,7 @@ public final class Q<E> {
 	 * @return the pending comparison, awaiting an operator
 	 */
 	public <T> WhereStep<E> ㅤORㅤ(Col<T> col) {
-		return where(Expr.col(col), "or");
+		return where(Expr.col(col), Names.property(col), "or");
 	}
 
 	/**
@@ -326,11 +326,11 @@ public final class Q<E> {
 	 * @return the pending comparison, awaiting an operator
 	 */
 	public WhereStep<E> ㅤORㅤ(Object left) {
-		return where(Expr.val(left), "or");
+		return where(Expr.val(left), null, "or");
 	}
 
-	private WhereStep<E> where(Expr left, String connector) {
-		return new WhereStep<>(left, connector, (predicate, conn) -> {
+	private WhereStep<E> where(Expr left, String leftHint, String connector) {
+		return new WhereStep<>(left, leftHint, connector, (predicate, conn) -> {
 			where = (where == null) ? predicate : Expr.bin(where, conn, predicate);
 			return this;
 		});
@@ -394,7 +394,7 @@ public final class Q<E> {
 	 */
 	public WhereStep<E> HAVING(Object left) {
 		Expr l = Expr.val(left);
-		return new WhereStep<>(l, "and", (predicate, connector) -> {
+		return new WhereStep<>(l, null, "and", (predicate, connector) -> {
 			having = (having == null) ? predicate : Expr.bin(having, connector, predicate);
 			return this;
 		});

@@ -26,11 +26,13 @@ public final class WhereStep<E> {
 	}
 
 	private final Expr left;
+	private final String leftHint;
 	private final String connector;
 	private final Sink<E> sink;
 
-	WhereStep(Expr left, String connector, Sink<E> sink) {
+	WhereStep(Expr left, String leftHint, String connector, Sink<E> sink) {
 		this.left = left;
+		this.leftHint = leftHint;
 		this.connector = connector;
 		this.sink = sink;
 	}
@@ -45,7 +47,7 @@ public final class WhereStep<E> {
 	 * @return the pending comparison with the extended left operand, awaiting an operator
 	 */
 	public <T> WhereStep<E> ㅤᐅㅤ(Col<T> getter) {
-		return new WhereStep<>(left.ᐧ(getter), connector, sink);
+		return new WhereStep<>(left.ᐧ(getter), Names.property(getter), connector, sink);
 	}
 
 	/**
@@ -202,7 +204,7 @@ public final class WhereStep<E> {
 	public Q<E> ISㅤNOTㅤEMPTY() { return unary("is not empty"); }
 
 	private Q<E> cmp(String op, Object r) {
-		Expr rr = Expr.val(r);
+		Expr rr = Expr.val(r, leftHint);
 		Expr l = left;
 		return sink.apply(Expr.of(c -> l.render(c) + " " + op + " " + rr.render(c)), connector);
 	}
