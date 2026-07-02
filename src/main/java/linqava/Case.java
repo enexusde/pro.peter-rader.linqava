@@ -73,12 +73,24 @@ public final class Case {
 		/**
 		 * Supplies the result for the preceding {@link Case#WHEN(Function) WHEN}.
 		 *
-		 * @param value the result expression/literal, e.g. {@code "GOLD"} or {@code c(Order::total)};
+		 * @param value the result expression/literal, e.g. {@code "GOLD"} or {@code col(Order::total)};
 		 *              must not be {@code null}
 		 * @return the next step, from which another {@code WHEN}, an {@code ELSE} or {@code END} is allowed
 		 */
 		public Body THEN(Object value) {
 			thens.add(Expr.val(value));
+			return new Body();
+		}
+
+		/**
+		 * Supplies the result for the preceding {@link Case#WHEN(Cond) WHEN} as a bare column reference.
+		 *
+		 * @param value the result column getter (method reference); must not be {@code null}
+		 * @param <T>   the entity type owning the column
+		 * @return the next step, from which another {@code WHEN}, an {@code ELSE} or {@code END} is allowed
+		 */
+		public <T> Body THEN(Col<T> value) {
+			thens.add(Expr.col(value));
 			return new Body();
 		}
 	}

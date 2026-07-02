@@ -327,7 +327,7 @@ public final class Cond {
 
 	/**
 	 * Collection membership ({@code value member of collection}), e.g.
-	 * {@code $.MEMBERㅤOF(param("product"), c(Customer::wishlist))} &rarr; {@code :product member of c.wishlist}.
+	 * {@code $.MEMBERㅤOF(param("product"), col(Customer::wishlist))} &rarr; {@code :product member of c.wishlist}.
 	 *
 	 * @param value      the element expression (literal/{@link Linq#param(String)}); must not be {@code null}
 	 * @param collection the collection-valued expression; must not be {@code null}

@@ -24,7 +24,7 @@ import static linqava.Linq.SUM;
 import static linqava.Linq.ㅤTREATㅤ;
 import static linqava.Linq.WITH;
 import static linqava.Linq.WITHㅤRECURSIVE;
-import static linqava.Linq.c;
+import static linqava.Linq.col;
 import static linqava.Linq.lit;
 import static linqava.Linq.param;
 import static linqava.Linq.sub;
@@ -62,18 +62,24 @@ import jakarta.persistence.TypedQuery;
  * multi-word keywords are a single method whose words are joined by {@code ㅤ}
  * (U+203F), e.g. {@code LEFTㅤJOIN}, {@code GROUPㅤBY}, {@code ORDERㅤBY},
  * {@code UNIONㅤALL}.</li>
- * <li>Columns are getter method references ({@code User::Name}); as a value
- * they are wrapped with {@code c(...)}, derived/aliased columns use
- * {@code c("alias")}.</li>
- * <li>The {@code AS} keyword aliases both fields ({@code c(User::id).AS("id")})
+ * <li>Columns are getter method references ({@code User::Name}); most call
+ * sites (comparisons, {@code GROUP BY}, {@code ORDER BY}, {@code JOIN FETCH},
+ * {@code CASE...THEN}, ...) accept them bare. Where a column needs
+ * {@code .AS(...)}/arithmetic chained onto it, or is a derived/alias-qualified
+ * column with no getter, wrap it with {@code col(...)} — {@code col(User::id)},
+ * {@code col("orderCount")}, {@code col("alias", "field")}.</li>
+ * <li>The {@code AS} keyword aliases both fields ({@code col(User::id).AS("id")})
  * and tables ({@code FROM(User.class).AS("u")}).</li>
- * <li>{@code WHERE}/{@code ON}/{@code HAVING} start from a bare column or expression, followed by an
- * operator supplying the right-hand value, e.g. {@code WHERE(User::Name).ᆖ("John")}; chain further
- * predicates with {@code .AND(col)}/{@code .OR(col)}. Operator glyphs: {@code ᆖ} (=), {@code ᐸ} (&lt;),
- * {@code ᐳ} (&gt;), {@code ᐸᆖ} (&lt;=), {@code ᐳᆖ} (&gt;=), {@code ᐸᐳ} (&lt;&gt;); math: {@code ᐩ} (+),
- * {@code ｰ} (-), {@code ᚷ} (*), {@code ノ} (/). For nested/grouped boolean trees or predicates that
- * don't start from a single column (e.g. {@code EXISTS}, {@code MEMBERㅤOF}), build a {@link Cond} from
- * {@link Linq}'s static predicate functions and pass it directly, e.g. {@code WHERE(AND(ᆖ(...), OR(...)))}.</li>
+ * <li>{@code WHERE}/{@code ON}/{@code HAVING} start from a bare column or
+ * expression, followed by an operator supplying the right-hand value, e.g.
+ * {@code WHERE(User::Name).ᆖ("John")}; chain further predicates with
+ * {@code .AND(col)}/{@code .OR(col)}. Operator glyphs: {@code ᆖ} (=), {@code ᐸ}
+ * (&lt;), {@code ᐳ} (&gt;), {@code ᐸᆖ} (&lt;=), {@code ᐳᆖ} (&gt;=), {@code ᐸᐳ}
+ * (&lt;&gt;); math: {@code ᐩ} (+), {@code ｰ} (-), {@code ᚷ} (*), {@code ノ} (/).
+ * For nested/grouped boolean trees or predicates that don't start from a single
+ * column (e.g. {@code EXISTS}, {@code MEMBERㅤOF}), build a {@link Cond} from
+ * {@link Linq}'s static predicate functions and pass it directly, e.g.
+ * {@code WHERE(AND(ᆖ(...), OR(...)))}.</li>
  * </ul>
  */
 public class QueryTest {
@@ -96,9 +102,9 @@ public class QueryTest {
 	@Test
 	public void testCteSimple() {
 		Q<Object> q = WITH("activeUsers",
-				SELECTㅤ(c(User::id).ㅤAS("id"), c(User::name).ㅤAS("name")).ㅤFROMㅤ(User.class).ㅤAS("u")
+				SELECTㅤ(col(User::id).ㅤAS("id"), col(User::name).ㅤAS("name")).ㅤFROMㅤ(User.class).ㅤAS("u")
 						.ㅤWHEREㅤ(User::active).ㅤᆖㅤ(true))
-				.SELECTㅤ(c("a", "name")).FROM("activeUsers").ㅤAS("a").ㅤORDERㅤBYㅤ(c("a", "name"));
+				.SELECTㅤ(col("a", "name")).FROM("activeUsers").ㅤAS("a").ㅤORDERㅤBYㅤ(col("a", "name"));
 		assertEquals("with activeUsers as (select u.id as id, u.name as name from User u "
 				+ "where u.active = true) select a.name from activeUsers a order by a.name", q.getHql());
 	}
@@ -108,15 +114,13 @@ public class QueryTest {
 	@Test
 	public void testCteMultiple() {
 		Q<Object> q = WITH("recentOrders",
-				SELECTㅤ(c(Order::id).ㅤAS("id"), c(Order::customerId).ㅤAS("customerId")).ㅤFROMㅤ(Order.class).ㅤAS("o")
+				SELECTㅤ(col(Order::id).ㅤAS("id"), col(Order::customerId).ㅤAS("customerId")).ㅤFROMㅤ(Order.class).ㅤAS("o")
 						.ㅤWHEREㅤ(Order::createdAt).ㅤᐳㅤ(param("since")))
-				.WITH("bigSpenders",
-						SELECTㅤ(c(Order::customerId).ㅤAS("customerId"), SUM(Order::total).ㅤAS("total"))
-								.FROM("recentOrders").ㅤAS("r").JOIN(Order.class).ㅤAS("o")
-								.ㅤONㅤ(Order::id).ㅤᆖㅤ(c("r", "id")).GROUPㅤBY(c(Order::customerId))
-								.HAVING(SUM(Order::total)).ㅤᐳㅤ(param("threshold")))
-				.SELECTㅤ(Customer::name, c("b", "total")).FROM("bigSpenders").ㅤAS("b").JOIN(Customer.class).ㅤAS("c")
-				.ㅤONㅤ(Customer::id).ㅤᆖㅤ(c("b", "customerId")).ㅤORDERㅤBYㅤ("b", "total").DESC();
+				.WITH("bigSpenders", SELECTㅤ(col(Order::customerId).ㅤAS("customerId"), SUM(Order::total).ㅤAS("total"))
+						.FROM("recentOrders").ㅤAS("r").JOIN(Order.class).ㅤAS("o").ㅤONㅤ(Order::id).ㅤᆖㅤ(col("r", "id"))
+						.GROUPㅤBY(Order::customerId).HAVING(SUM(Order::total)).ㅤᐳㅤ(param("threshold")))
+				.SELECTㅤ(Customer::name, col("b", "total")).FROM("bigSpenders").ㅤAS("b").JOIN(Customer.class).ㅤAS("c")
+				.ㅤONㅤ(Customer::id).ㅤᆖㅤ(col("b", "customerId")).ㅤORDERㅤBYㅤ("b", "total").DESC();
 		assertEquals("with recentOrders as (select o.id as id, o.customerId as customerId from Order o "
 				+ "where o.createdAt > :since), bigSpenders as (select o.customerId as customerId, "
 				+ "sum(o.total) as total from recentOrders r join Order o on o.id = r.id "
@@ -130,13 +134,13 @@ public class QueryTest {
 	@Test
 	public void testRecursiveCte() {
 		Q<Object> q = WITHㅤRECURSIVE("empHierarchy",
-				SELECTㅤ(c(Employee::id).ㅤAS("id"), c(Employee::managerId).ㅤAS("managerId"), lit(0).ㅤAS("depth"))
+				SELECTㅤ(col(Employee::id).ㅤAS("id"), col(Employee::managerId).ㅤAS("managerId"), lit(0).ㅤAS("depth"))
 						.ㅤFROMㅤ(Employee.class).ㅤAS("e").ㅤWHEREㅤ(Employee::managerId).ISㅤNULL()
-						.UNIONㅤALL(SELECTㅤ(c(Employee::id).ㅤAS("id"), c(Employee::managerId).ㅤAS("managerId"),
-								c("h", "depth").ᐩ(1).ㅤAS("depth")).ㅤFROMㅤ(Employee.class).ㅤAS("e")
-								.JOIN("empHierarchy").ㅤAS("h").ㅤONㅤ(Employee::managerId).ㅤᆖㅤ(c("h", "id"))))
-				.SELECTㅤ(c("h", "id"), c("h", "depth")).FROM("empHierarchy").ㅤAS("h")
-				.ㅤORDERㅤBYㅤ(c("h", "depth"), c("h", "id"));
+						.UNIONㅤALL(SELECTㅤ(col(Employee::id).ㅤAS("id"), col(Employee::managerId).ㅤAS("managerId"),
+								col("h", "depth").ᐩ(1).ㅤAS("depth")).ㅤFROMㅤ(Employee.class).ㅤAS("e").JOIN("empHierarchy")
+								.ㅤAS("h").ㅤONㅤ(Employee::managerId).ㅤᆖㅤ(col("h", "id"))))
+				.SELECTㅤ(col("h", "id"), col("h", "depth")).FROM("empHierarchy").ㅤAS("h")
+				.ㅤORDERㅤBYㅤ(col("h", "depth"), col("h", "id"));
 		assertEquals("with recursive empHierarchy as (select e.id as id, e.managerId as managerId, 0 as depth "
 				+ "from Employee e where e.managerId is null union all "
 				+ "select e.id as id, e.managerId as managerId, h.depth + 1 as depth "
@@ -148,9 +152,9 @@ public class QueryTest {
 	// WHERE o2.customerId = o.customerId)
 	@Test
 	public void testCorrelatedSubquery() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o")
-				.ㅤWHEREㅤ(Order::total).ㅤᆖㅤ(SELECTㅤ(MAX(Order::total)).ㅤFROMㅤ(Order.class).ㅤAS("o2")
-						.ㅤWHEREㅤ(Order::customerId).ㅤᆖㅤ("o", Order::customerId));
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤWHEREㅤ(Order::total)
+				.ㅤᆖㅤ(SELECTㅤ(MAX(Order::total)).ㅤFROMㅤ(Order.class).ㅤAS("o2").ㅤWHEREㅤ(Order::customerId).ㅤᆖㅤ("o",
+						Order::customerId));
 		assertEquals("select o from Order o where o.total = "
 				+ "(select max(o2.total) from Order o2 where o2.customerId = o.customerId)", q.getHql());
 	}
@@ -160,8 +164,8 @@ public class QueryTest {
 	@Test
 	public void testExistsSubquery() {
 		Q<Customer> q = SELECTㅤ(Customer.class).ㅤFROMㅤ(Customer.class).ㅤAS("c")
-				.ㅤWHEREㅤ(ㅤEXISTSㅤ(SELECTㅤ(lit(1)).ㅤFROMㅤ(Order.class).ㅤAS("o")
-						.ㅤWHEREㅤ(Order::customerId).ㅤᆖㅤ("c", Customer::id).ㅤANDㅤ(Order::status).ㅤᆖㅤ("PAID")));
+				.ㅤWHEREㅤ(ㅤEXISTSㅤ(SELECTㅤ(lit(1)).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤWHEREㅤ(Order::customerId)
+						.ㅤᆖㅤ("c", Customer::id).ㅤANDㅤ(Order::status).ㅤᆖㅤ("PAID")));
 		assertEquals("select c from Customer c where exists "
 				+ "(select 1 from Order o where o.customerId = c.id and o.status = 'PAID')", q.getHql());
 	}
@@ -170,9 +174,9 @@ public class QueryTest {
 	// cat WHERE cat.parentId = :parent)
 	@Test
 	public void testInSubquery() {
-		Q<Product> q = SELECTㅤ(Product.class).ㅤFROMㅤ(Product.class).ㅤAS("p")
-				.ㅤWHEREㅤ(Product::categoryId).IN(SELECTㅤ(Category::id).ㅤFROMㅤ(Category.class).ㅤAS("cat")
-						.ㅤWHEREㅤ(Category::parentId).ㅤᆖㅤ(param("parent")));
+		Q<Product> q = SELECTㅤ(Product.class).ㅤFROMㅤ(Product.class).ㅤAS("p").ㅤWHEREㅤ(Product::categoryId)
+				.IN(SELECTㅤ(Category::id).ㅤFROMㅤ(Category.class).ㅤAS("cat").ㅤWHEREㅤ(Category::parentId)
+						.ㅤᆖㅤ(param("parent")));
 		assertEquals("select p from Product p where p.categoryId in "
 				+ "(select cat.id from Category cat where cat.parentId = :parent)", q.getHql());
 	}
@@ -182,7 +186,7 @@ public class QueryTest {
 	@Test
 	public void testGroupByHaving() {
 		Q<Object> q = SELECTㅤ(Order::customerId, COUNT(Order::id), SUM(Order::total)).ㅤFROMㅤ(Order.class).ㅤAS("o")
-				.ㅤWHEREㅤ(Order::status).ᐸᐳ("CANCELLED").GROUPㅤBY(c(Order::customerId))
+				.ㅤWHEREㅤ(Order::status).ᐸᐳ("CANCELLED").GROUPㅤBY(Order::customerId)
 				.HAVING(ㅤᐳㅤ(COUNT(Order::id), 5).ㅤANDㅤ(SUM(Order::total)).ㅤᐳㅤ(1000))
 				.ㅤORDERㅤBYㅤ(SUM(Order::total).DESC());
 		assertEquals("select o.customerId, count(o.id), sum(o.total) from Order o "
@@ -194,8 +198,9 @@ public class QueryTest {
 	// o.items WHERE c.country = :country
 	@Test
 	public void testJoinFetch() {
-		Q<Customer> q = SELECTㅤ(DISTINCTㅤ(Customer.class)).ㅤFROMㅤ(Customer.class).ㅤAS("c").LEFTㅤJOINㅤFETCH(c(Customer::orders))
-				.ㅤAS("o").LEFTㅤJOINㅤFETCH(c("o", "items")).ㅤWHEREㅤ(Customer::country).ㅤᆖㅤ(param("country"));
+		Q<Customer> q = SELECTㅤ(DISTINCTㅤ(Customer.class)).ㅤFROMㅤ(Customer.class).ㅤAS("c")
+				.LEFTㅤJOINㅤFETCH(Customer::orders).ㅤAS("o").LEFTㅤJOINㅤFETCH(col("o", "items"))
+				.ㅤWHEREㅤ(Customer::country).ㅤᆖㅤ(param("country"));
 		assertEquals("select distinct c from Customer c left join fetch c.orders o "
 				+ "left join fetch o.items where c.country = :country", q.getHql());
 	}
@@ -204,11 +209,10 @@ public class QueryTest {
 	// OrderItem oi ON ... JOIN Product p ON ...
 	@Test
 	public void testMultipleJoinsWithOn() {
-		Q<Object> q = SELECTㅤ(Order::id, c(Customer::name), c(Product::title)).ㅤFROMㅤ(Order.class).ㅤAS("o")
-				.JOIN(Customer.class).ㅤAS("c").ㅤONㅤ(Customer::id).ㅤᆖㅤ("o", Order::customerId)
-				.JOIN(OrderItem.class).ㅤAS("oi").ㅤONㅤ(OrderItem::orderId).ㅤᆖㅤ("o", Order::id)
-				.JOIN(Product.class).ㅤAS("p").ㅤONㅤ(Product::id).ㅤᆖㅤ("oi", OrderItem::productId)
-				.ㅤWHEREㅤ(Product::price).ㅤᐳㅤ(param("minPrice"));
+		Q<Object> q = SELECTㅤ(Order::id, col(Customer::name), col(Product::title)).ㅤFROMㅤ(Order.class).ㅤAS("o")
+				.JOIN(Customer.class).ㅤAS("c").ㅤONㅤ(Customer::id).ㅤᆖㅤ("o", Order::customerId).JOIN(OrderItem.class)
+				.ㅤAS("oi").ㅤONㅤ(OrderItem::orderId).ㅤᆖㅤ("o", Order::id).JOIN(Product.class).ㅤAS("p").ㅤONㅤ(Product::id)
+				.ㅤᆖㅤ("oi", OrderItem::productId).ㅤWHEREㅤ(Product::price).ㅤᐳㅤ(param("minPrice"));
 		assertEquals("select o.id, c.name, p.title from Order o "
 				+ "join Customer c on c.id = o.customerId join OrderItem oi on oi.orderId = o.id "
 				+ "join Product p on p.id = oi.productId where p.price > :minPrice", q.getHql());
@@ -227,8 +231,8 @@ public class QueryTest {
 	// BY ... DESC) AS rn FROM Order o
 	@Test
 	public void testWindowFunction() {
-		Q<Object> q = SELECTㅤ(Order::customerId, c(Order::id), c(Order::total),
-				ROW_NUMBER().OVER(ㅤPARTITIONㅤBYㅤ(c(Order::customerId)).ORDERㅤBY(Order::total).DESC()).ㅤAS("rn"))
+		Q<Object> q = SELECTㅤ(Order::customerId, col(Order::id), col(Order::total),
+				ROW_NUMBER().OVER(ㅤPARTITIONㅤBYㅤ(Order::customerId).ORDERㅤBY(Order::total).DESC()).ㅤAS("rn"))
 				.ㅤFROMㅤ(Order.class).ㅤAS("o");
 		assertEquals(
 				"select o.customerId, o.id, o.total, "
@@ -240,8 +244,8 @@ public class QueryTest {
 	// FROM Supplier s WHERE s.preferred = true
 	@Test
 	public void testUnionAll() {
-		Q<Object> q = SELECTㅤ(c(User::email).ㅤAS("contact")).ㅤFROMㅤ(User.class).ㅤAS("u").ㅤWHEREㅤ(User::active).ㅤᆖㅤ(true)
-				.UNIONㅤALL(SELECTㅤ(c(Supplier::email).ㅤAS("contact")).ㅤFROMㅤ(Supplier.class).ㅤAS("s")
+		Q<Object> q = SELECTㅤ(col(User::email).ㅤAS("contact")).ㅤFROMㅤ(User.class).ㅤAS("u").ㅤWHEREㅤ(User::active).ㅤᆖㅤ(true)
+				.UNIONㅤALL(SELECTㅤ(col(Supplier::email).ㅤAS("contact")).ㅤFROMㅤ(Supplier.class).ㅤAS("s")
 						.ㅤWHEREㅤ(Supplier::preferred).ㅤᆖㅤ(true));
 		assertEquals("select u.email as contact from User u where u.active = true union all "
 				+ "select s.email as contact from Supplier s where s.preferred = true", q.getHql());
@@ -251,9 +255,9 @@ public class QueryTest {
 	// JOIN c.orders o GROUP BY c.id, c.name
 	@Test
 	public void testConstructorExpression() {
-		Q<Object> q = SELECTㅤ(NEW(CustomerSummary.class, c(Customer::id), c(Customer::name), COUNT(c("o", Order::id))))
+		Q<Object> q = SELECTㅤ(NEW(CustomerSummary.class, Customer::id, col(Customer::name), COUNT(col("o", Order::id))))
 				.ㅤFROMㅤ(Customer.class).ㅤAS("c").LEFTㅤJOIN(Customer::orders).ㅤAS("o")
-				.GROUPㅤBY(c(Customer::id), c(Customer::name));
+				.GROUPㅤBY(Customer::id, Customer::name);
 		assertEquals("select new linqava.CustomerSummary(c.id, c.name, count(o.id)) from Customer c "
 				+ "left join c.orders o group by c.id, c.name", q.getHql());
 	}
@@ -263,7 +267,7 @@ public class QueryTest {
 	@Test
 	public void testCollectionMemberAndEmpty() {
 		Q<Customer> q = SELECTㅤ(Customer.class).ㅤFROMㅤ(Customer.class).ㅤAS("c")
-				.ㅤWHEREㅤ(ㅤMEMBERㅤOFㅤ(param("product"), c(Customer::wishlist)).ㅤANDㅤ().ISㅤNOTㅤEMPTY(Customer::orders)
+				.ㅤWHEREㅤ(ㅤMEMBERㅤOFㅤ(param("product"), Customer::wishlist).ㅤANDㅤ().ISㅤNOTㅤEMPTY(Customer::orders)
 						.ㅤANDㅤ(SIZE(Customer::orders)).ㅤᐳㅤ(3));
 		assertEquals("select c from Customer c where :product member of c.wishlist "
 				+ "and c.orders is not empty and size(c.orders) > 3", q.getHql());
@@ -274,8 +278,10 @@ public class QueryTest {
 	@Test
 	public void testTreatPolymorphism() {
 		Q<Payment> q = SELECTㅤ(Payment.class).ㅤFROMㅤ(Payment.class).ㅤAS("p")
-				.ㅤWHEREㅤ(ㅤTREATㅤ(Payment.class, CreditCardPayment.class).ᐧ(CreditCardPayment::cardType)).ㅤᆖㅤ(param("cardType"))
-				.ㅤORㅤ(ㅤTREATㅤ(Payment.class, BankTransferPayment.class).ᐧ(BankTransferPayment::iban)).LIKE(param("ibanPrefix"));
+				.ㅤWHEREㅤ(ㅤTREATㅤ(Payment.class, CreditCardPayment.class).ᐧ(CreditCardPayment::cardType))
+				.ㅤᆖㅤ(param("cardType"))
+				.ㅤORㅤ(ㅤTREATㅤ(Payment.class, BankTransferPayment.class).ᐧ(BankTransferPayment::iban))
+				.LIKE(param("ibanPrefix"));
 		assertEquals("select p from Payment p where treat(p as CreditCardPayment).cardType = :cardType "
 				+ "or treat(p as BankTransferPayment).iban like :ibanPrefix", q.getHql());
 	}
@@ -285,11 +291,11 @@ public class QueryTest {
 	@Test
 	public void testCteWithWindowFunction() {
 		Q<Object> q = WITH("rankedOrders",
-				SELECTㅤ(c(Order::id).ㅤAS("id"), c(Order::customerId).ㅤAS("customerId"), c(Order::total).ㅤAS("total"),
-						RANK().OVER(ㅤPARTITIONㅤBYㅤ(c(Order::customerId)).ORDERㅤBY(Order::total).DESC()).ㅤAS("rnk"))
+				SELECTㅤ(col(Order::id).ㅤAS("id"), col(Order::customerId).ㅤAS("customerId"), col(Order::total).ㅤAS("total"),
+						RANK().OVER(ㅤPARTITIONㅤBYㅤ(Order::customerId).ORDERㅤBY(Order::total).DESC()).ㅤAS("rnk"))
 						.ㅤFROMㅤ(Order.class).ㅤAS("o"))
-				.SELECTㅤ(c("r", "customerId"), c("r", "id"), c("r", "total")).FROM("rankedOrders").ㅤAS("r")
-				.ㅤWHEREㅤ(c("r", "rnk")).ㅤᆖㅤ(1);
+				.SELECTㅤ(col("r", "customerId"), col("r", "id"), col("r", "total")).FROM("rankedOrders").ㅤAS("r")
+				.ㅤWHEREㅤ(col("r", "rnk")).ㅤᆖㅤ(1);
 		assertEquals("with rankedOrders as (select o.id as id, o.customerId as customerId, o.total as total, "
 				+ "rank() over (partition by o.customerId order by o.total desc) as rnk from Order o) "
 				+ "select r.customerId, r.id, r.total from rankedOrders r where r.rnk = 1", q.getHql());
@@ -300,9 +306,9 @@ public class QueryTest {
 	@Test
 	public void testScalarSubqueryInSelect() {
 		Q<Object> q = SELECTㅤ(Customer::name,
-				sub(SELECTㅤ(COUNT(Order::id)).ㅤFROMㅤ(Order.class).ㅤAS("o")
-						.ㅤWHEREㅤ(Order::customerId).ㅤᆖㅤ("c", Customer::id)).ㅤAS("orderCount"))
-				.ㅤFROMㅤ(Customer.class).ㅤAS("c").ㅤORDERㅤBYㅤ(c("orderCount").DESC());
+				sub(SELECTㅤ(COUNT(Order::id)).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤWHEREㅤ(Order::customerId).ㅤᆖㅤ("c",
+						Customer::id)).ㅤAS("orderCount"))
+				.ㅤFROMㅤ(Customer.class).ㅤAS("c").ㅤORDERㅤBYㅤ(col("orderCount").DESC());
 		assertEquals("select c.name, (select count(o.id) from Order o where o.customerId = c.id) as orderCount "
 				+ "from Customer c order by orderCount desc", q.getHql());
 	}
@@ -312,9 +318,9 @@ public class QueryTest {
 	@Test
 	public void testNestedCaseInAggregateWithCoalesce() {
 		Q<Object> q = SELECTㅤ(Order::customerId,
-				SUM(CASE().WHEN(ㅤᆖㅤ(Order::status, "PAID")).THEN(c(Order::total)).ELSE(0).END()).ㅤAS("paidTotal"),
+				SUM(CASE().WHEN(ㅤᆖㅤ(Order::status, "PAID")).THEN(Order::total).ELSE(0).END()).ㅤAS("paidTotal"),
 				COALESCE(AVG(NULLIF(Order::discount, 0)), 0).ㅤAS("avgDiscount")).ㅤFROMㅤ(Order.class).ㅤAS("o")
-				.GROUPㅤBY(c(Order::customerId));
+				.GROUPㅤBY(Order::customerId);
 		assertEquals(
 				"select o.customerId, sum(case when o.status = 'PAID' then o.total else 0 end) as paidTotal, "
 						+ "coalesce(avg(nullif(o.discount, 0)), 0) as avgDiscount from Order o group by o.customerId",
@@ -326,8 +332,9 @@ public class QueryTest {
 	@Test
 	public void testDeeplyNestedAndOr() {
 		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o")
-				.ㅤWHEREㅤ(ㅤANDㅤ(ㅤᆖㅤ(Order::status, "PAID"), ㅤORㅤ(ㅤᐳㅤ(Order::total, 100), ㅤANDㅤ(ㅤᐸㅤ(Order::discount, 5),
-						ㅤORㅤ(ㅤᆖㅤ(Order::customerId, 42), ㅤANDㅤ(ㅤᐳᆖㅤ(Order::total, 1000), ㅤᐸᆖㅤ(Order::discount, 50)))))));
+				.ㅤWHEREㅤ(ㅤANDㅤ(ㅤᆖㅤ(Order::status, "PAID"),
+						ㅤORㅤ(ㅤᐳㅤ(Order::total, 100), ㅤANDㅤ(ㅤᐸㅤ(Order::discount, 5), ㅤORㅤ(ㅤᆖㅤ(Order::customerId, 42),
+								ㅤANDㅤ(ㅤᐳᆖㅤ(Order::total, 1000), ㅤᐸᆖㅤ(Order::discount, 50)))))));
 		assertEquals(
 				"select o from Order o where (o.status = 'PAID' and (o.total > 100 or "
 						+ "(o.discount < 5 and (o.customerId = 42 or (o.total >= 1000 and o.discount <= 50)))))",
@@ -371,16 +378,17 @@ public class QueryTest {
 	// SELECT c FROM Car c WHERE c.driver.id > 0 AND c.plate.id > 0
 	@Test
 	public void testComplex1() {
-		Q<Car> q = SELECTㅤ(Car.class).ㅤFROMㅤ(Car.class).ㅤAS("c")
-				.ㅤWHEREㅤ(Car::driver).ᐧ(Driver::id).ㅤᐳㅤ(0).ㅤANDㅤ(Car::plate).ᐧ(SerialPlate::id).ㅤᐳㅤ(0);
+		Q<Car> q = SELECTㅤ(Car.class).ㅤFROMㅤ(Car.class).ㅤAS("c").ㅤWHEREㅤ(Car::driver).ㅤᐅㅤ(Driver::id).ㅤᐳㅤ(0)
+				.ㅤANDㅤ(Car::plate).ㅤᐅㅤ(SerialPlate::id).ㅤᐳㅤ(0);
 		assertEquals("select c from Car c where c.driver.id > 0 and c.plate.id > 0", q.getHql());
 	}// SELECT c FROM Car c WHERE c.driver.id > 0 AND c.plate.id > 0
 
 	@Test
 	public void testComplex2() {
-		Q<Driver> q = SELECTㅤ(Driver.class).ㅤFROMㅤ(Driver.class).ㅤWHEREㅤ(c(Driver::id)).ㅤᐳㅤ(0);
+		Q<Driver> q = SELECTㅤ(Driver.class).ㅤFROMㅤ(Driver.class).ㅤWHEREㅤ(col(Driver::id)).ㅤᐳㅤ(0);
 		assertEquals("select Driver from Driver where id > 0", q.getHql());
 	}
+
 	@Test
 	public void testComplex3() {
 		Q<Driver> q = SELECTㅤ(Driver.class).ㅤFROMㅤ(Driver.class).ㅤWHEREㅤ(Driver::id).ㅤᐳㅤ(0);

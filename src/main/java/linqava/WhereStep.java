@@ -38,13 +38,13 @@ public final class WhereStep<E> {
 	/**
 	 * Navigates from the left operand into a nested association member, e.g.
 	 * {@code AND(Car::plate).ᐧ(SerialPlate::id)} &rarr; left operand {@code c.plate.id} — shorthand for
-	 * {@code AND(c(Car::plate).ᐧ(SerialPlate::id))}.
+	 * {@code AND(col(Car::plate).ᐧ(SerialPlate::id))}.
 	 *
 	 * @param getter the member field getter (method reference); must not be {@code null}
 	 * @param <T>    the type owning the getter
 	 * @return the pending comparison with the extended left operand, awaiting an operator
 	 */
-	public <T> WhereStep<E> ᐧ(Col<T> getter) {
+	public <T> WhereStep<E> ㅤᐅㅤ(Col<T> getter) {
 		return new WhereStep<>(left.ᐧ(getter), connector, sink);
 	}
 
@@ -58,14 +58,14 @@ public final class WhereStep<E> {
 
 	/**
 	 * Equality ({@code =}) with an alias-qualified right column, e.g. {@code ᆖ("o", Order::customerId)}
-	 * &rarr; {@code = o.customerId} — shorthand for {@code ᆖ(c("o", Order::customerId))}.
+	 * &rarr; {@code = o.customerId} — shorthand for {@code ᆖ(col("o", Order::customerId))}.
 	 *
 	 * @param alias the range-variable alias to qualify the right column with; must not be {@code null}
 	 * @param r     the right column getter (method reference); must not be {@code null}
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> Q<E> ㅤᆖㅤ(String alias, Col<T> r) { return cmp("=", Linq.c(alias, r)); }
+	public <T> Q<E> ㅤᆖㅤ(String alias, Col<T> r) { return cmp("=", Linq.col(alias, r)); }
 
 	/**
 	 * Less-than ({@code <}).
@@ -83,7 +83,7 @@ public final class WhereStep<E> {
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> Q<E> ㅤᐸㅤ(String alias, Col<T> r) { return cmp("<", Linq.c(alias, r)); }
+	public <T> Q<E> ㅤᐸㅤ(String alias, Col<T> r) { return cmp("<", Linq.col(alias, r)); }
 
 	/**
 	 * Greater-than ({@code >}).
@@ -101,7 +101,7 @@ public final class WhereStep<E> {
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> Q<E> ㅤᐳㅤ(String alias, Col<T> r) { return cmp(">", Linq.c(alias, r)); }
+	public <T> Q<E> ㅤᐳㅤ(String alias, Col<T> r) { return cmp(">", Linq.col(alias, r)); }
 
 	/**
 	 * Less-than-or-equal ({@code <=}).
@@ -119,7 +119,7 @@ public final class WhereStep<E> {
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> Q<E> ᐸᆖ(String alias, Col<T> r) { return cmp("<=", Linq.c(alias, r)); }
+	public <T> Q<E> ᐸᆖ(String alias, Col<T> r) { return cmp("<=", Linq.col(alias, r)); }
 
 	/**
 	 * Greater-than-or-equal ({@code >=}).
@@ -137,7 +137,7 @@ public final class WhereStep<E> {
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> Q<E> ᐳᆖ(String alias, Col<T> r) { return cmp(">=", Linq.c(alias, r)); }
+	public <T> Q<E> ᐳᆖ(String alias, Col<T> r) { return cmp(">=", Linq.col(alias, r)); }
 
 	/**
 	 * Not-equal ({@code <>}).
@@ -155,7 +155,7 @@ public final class WhereStep<E> {
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> Q<E> ᐸᐳ(String alias, Col<T> r) { return cmp("<>", Linq.c(alias, r)); }
+	public <T> Q<E> ᐸᐳ(String alias, Col<T> r) { return cmp("<>", Linq.col(alias, r)); }
 
 	/**
 	 * Membership test ({@code in (...)}), e.g. {@code WHERE(Product::categoryId).IN(subquery)}.

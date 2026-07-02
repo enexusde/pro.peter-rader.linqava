@@ -181,10 +181,10 @@ public final class Q<E> {
 	/**
 	 * Inner fetch-join along a path ({@code join fetch owner.assoc}).
 	 *
-	 * <p>Example: {@code JOINㅤFETCH(c(Customer::orders)).AS("o")} &rarr; {@code join fetch c.orders o}.</p>
+	 * <p>Example: {@code JOINㅤFETCH(col(Customer::orders)).AS("o")} &rarr; {@code join fetch c.orders o}.</p>
 	 *
 	 * @param path the fetch path; the first element is used. Must not be {@code null} or empty;
-	 *             pass a single {@link Linq#c(Col)}/{@link Linq#c(String)} expression
+	 *             pass a single {@link Linq#col(Col)}/{@link Linq#col(String)} expression
 	 * @return this builder, for chaining
 	 */
 	public Q<E> JOINㅤFETCH(Object... path) { return addJoin("join fetch", src(null, false, Expr.val(path[0]))); }
@@ -196,6 +196,16 @@ public final class Q<E> {
 	 * @return this builder, for chaining
 	 */
 	public Q<E> LEFTㅤJOINㅤFETCH(Object... path) { return addJoin("left join fetch", src(null, false, Expr.val(path[0]))); }
+
+	/**
+	 * Left-outer fetch-join along a path, with a type-safe bare column reference, e.g.
+	 * {@code LEFTㅤJOINㅤFETCH(Customer::orders)} &rarr; {@code left join fetch c.orders}.
+	 *
+	 * @param path the association getter (method reference); must not be {@code null}
+	 * @param <T>  the owning entity type
+	 * @return this builder, for chaining
+	 */
+	public <T> Q<E> LEFTㅤJOINㅤFETCH(Col<T> path) { return addJoin("left join fetch", src(null, false, Expr.col(path))); }
 
 	/**
 	 * The {@code on} condition for the most recently added join, from a pre-built predicate
@@ -214,7 +224,7 @@ public final class Q<E> {
 	 * The {@code on} condition for the most recently added join, started from a bare column; follow
 	 * with a comparison operator on the returned {@link WhereStep} to supply the right-hand value.
 	 *
-	 * <p>Example: {@code .JOIN(Customer.class).AS("c").ON(Customer::id).ᆖ(c("o", Order::customerId))}.</p>
+	 * <p>Example: {@code .JOIN(Customer.class).AS("c").ON(Customer::id).ᆖ(col("o", Order::customerId))}.</p>
 	 *
 	 * @param col the left column getter (method reference); must not be {@code null}
 	 * @param <T> the entity type owning the column
@@ -262,7 +272,7 @@ public final class Q<E> {
 	 * {@code TREAT(...)}-cast member access or an aliased column); follow with a comparison operator
 	 * on the returned {@link WhereStep}.
 	 *
-	 * <p>Example: {@code WHERE(c("r", "rnk")).ᆖ(1)} &rarr; {@code where r.rnk = 1}.</p>
+	 * <p>Example: {@code WHERE(col("r", "rnk")).ᆖ(1)} &rarr; {@code where r.rnk = 1}.</p>
 	 *
 	 * @param left the left operand; must not be {@code null}
 	 * @return the pending comparison, awaiting an operator
@@ -327,7 +337,7 @@ public final class Q<E> {
 	/**
 	 * The {@code group by} clause.
 	 *
-	 * <p>Example: {@code GROUPㅤBY(c(Order::customerId))} &rarr; {@code group by o.customerId}.</p>
+	 * <p>Example: {@code GROUPㅤBY(col("o", Order::customerId))} &rarr; {@code group by o.customerId}.</p>
 	 *
 	 * @param cols the grouping expressions, in order; must not be {@code null} or empty
 	 * @return this builder, for chaining
@@ -335,6 +345,22 @@ public final class Q<E> {
 	public Q<E> GROUPㅤBY(Object... cols) {
 		for (Object o : cols) {
 			groupBy.add(Expr.val(o));
+		}
+		return this;
+	}
+
+	/**
+	 * The {@code group by} clause, with type-safe bare column references, e.g.
+	 * {@code GROUPㅤBY(Order::customerId)} &rarr; {@code group by o.customerId}.
+	 *
+	 * @param cols the grouping columns, in order; must not be {@code null} or empty
+	 * @param <T>  the entity type owning the columns
+	 * @return this builder, for chaining
+	 */
+	@SafeVarargs
+	public final <T> Q<E> GROUPㅤBY(Col<T>... cols) {
+		for (Col<T> col : cols) {
+			groupBy.add(Expr.col(col));
 		}
 		return this;
 	}
@@ -375,7 +401,7 @@ public final class Q<E> {
 	/**
 	 * The {@code order by} clause. Append {@link Expr#DESC()}/{@link Expr#ASC()} to an element for direction.
 	 *
-	 * <p>Example: {@code ORDERㅤBY(SUM(c(Order::total)).DESC())} &rarr; {@code order by sum(o.total) desc}.</p>
+	 * <p>Example: {@code ORDERㅤBY(SUM(col(Order::total)).DESC())} &rarr; {@code order by sum(o.total) desc}.</p>
 	 *
 	 * @param cols the ordering expressions, in order; must not be {@code null} or empty
 	 * @return this builder, for chaining
@@ -398,7 +424,7 @@ public final class Q<E> {
 	 * @return the pending ordering, awaiting a direction
 	 */
 	public OrderByStep<E> ㅤORDERㅤBYㅤ(String alias, String field) {
-		return new OrderByStep<>(this, Linq.c(alias, field));
+		return new OrderByStep<>(this, Linq.col(alias, field));
 	}
 
 	Q<E> addOrderBy(Expr e) {
@@ -438,7 +464,7 @@ public final class Q<E> {
 	/**
 	 * Renders this finished statement to its HQL string.
 	 *
-	 * <p>Example: {@code SELECT(c(User::id)).FROM(User.class).WHERE(User::Name).ᆖ("John").getHql()}
+	 * <p>Example: {@code SELECT(col(User::id)).FROM(User.class).WHERE(User::Name).ᆖ("John").getHql()}
 	 * returns {@code "select id from User where Name = 'John'"}.</p>
 	 *
 	 * @return the HQL text; never {@code null}. ({@code SELECT} and {@code FROM} are guaranteed by the

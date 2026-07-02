@@ -14,7 +14,7 @@ package linqava;
  * <pre>{@code
  * import static linqava.Linq.*;
  *
- * Q<?> q = SELECT(c(User::id))
+ * Q<?> q = SELECT(col(User::id))
  *           .FROM(User.class)
  *           .WHERE(User::Name).ᆖ("John");
  * q.getHql(); // "select id from User where Name = 'John'"
@@ -35,9 +35,9 @@ public final class Linq {
 	/**
 	 * Starts a {@code SELECT} query.
 	 *
-	 * <p>Example: {@code SELECT(c(Order::id), COUNT(c(Order::id)))} &rarr; {@code select o.id, count(o.id) ...}</p>
+	 * <p>Example: {@code SELECT(col(Order::id), COUNT(col(Order::id)))} &rarr; {@code select o.id, count(o.id) ...}</p>
 	 *
-	 * @param cols the projected columns/expressions, in order; typically {@link #c(Col)},
+	 * @param cols the projected columns/expressions, in order; typically {@link #col(Col)},
 	 *             aggregates such as {@link #COUNT(Object)}, or {@link #entity(Class)}. Must not be
 	 *             {@code null} and should not contain {@code null} elements (a {@code null} element
 	 *             renders as the literal text {@code null}). May be empty.
@@ -47,7 +47,7 @@ public final class Linq {
 
 	/**
 	 * Starts a {@code SELECT} whose first column is a bare getter reference, e.g.
-	 * {@code SELECT(Order::id, CASE()...END())} — avoids wrapping the leading column in {@link #c(Col)}.
+	 * {@code SELECT(Order::id, CASE()...END())} — avoids wrapping the leading column in {@link #col(Col)}.
 	 *
 	 * @param first the first column getter (method reference); must not be {@code null}
 	 * @param rest  the remaining columns/expressions, in order; must not be {@code null}, may be empty
@@ -115,14 +115,14 @@ public final class Linq {
 	 * A type-safe column reference, resolved to {@code alias.property} using the alias declared for
 	 * the column's entity in the surrounding query (just {@code property} if no alias was declared).
 	 *
-	 * <p>Example: with {@code FROM(User.class).AS("u")}, {@code c(User::name)} &rarr; {@code u.name}.</p>
+	 * <p>Example: with {@code FROM(User.class).AS("u")}, {@code col(User::name)} &rarr; {@code u.name}.</p>
 	 *
 	 * @param col the entity getter, e.g. {@code User::name}; must be a method reference (not an
 	 *            arbitrary lambda) and must not be {@code null}
 	 * @param <T> the entity type owning the getter
 	 * @return the column as an {@link Expr}
 	 */
-	public static <T> Expr c(Col<T> col) {
+	public static <T> Expr col(Col<T> col) {
 		String prop = Names.property(col);
 		String entity = Names.entity(col);
 		return Expr.of(ctx -> {
@@ -134,13 +134,13 @@ public final class Linq {
 	/**
 	 * A column referenced by raw name — for derived/CTE/aliased columns that have no entity getter.
 	 *
-	 * <p>Example: {@code c("orderCount")} &rarr; {@code orderCount}.</p>
+	 * <p>Example: {@code col("orderCount")} &rarr; {@code orderCount}.</p>
 	 *
 	 * @param derivedColumn the literal column text emitted verbatim into the HQL; must not be
 	 *                      {@code null}, e.g. {@code "orderCount"}
 	 * @return the column as an {@link Expr}
 	 */
-	public static Expr c(String derivedColumn) {
+	public static Expr col(String derivedColumn) {
 		return Expr.of(ctx -> derivedColumn);
 	}
 
@@ -148,13 +148,13 @@ public final class Linq {
 	 * A column qualified with an explicit alias and a raw field name — for CTE/derived columns that
 	 * have no entity getter.
 	 *
-	 * <p>Example: {@code c("a", "name")} &rarr; {@code a.name}.</p>
+	 * <p>Example: {@code col("a", "name")} &rarr; {@code a.name}.</p>
 	 *
 	 * @param alias the range-variable alias; must not be {@code null}, e.g. {@code "a"}
 	 * @param field the field name; must not be {@code null}, e.g. {@code "name"}
 	 * @return the aliased column as an {@link Expr}
 	 */
-	public static Expr c(String alias, String field) {
+	public static Expr col(String alias, String field) {
 		return Expr.of(ctx -> alias + "." + field);
 	}
 
@@ -162,14 +162,14 @@ public final class Linq {
 	 * A type-safe column qualified with an explicit table alias — useful when the entity is not
 	 * uniquely resolvable in the current scope (self-joins, correlated sub-queries, path joins).
 	 *
-	 * <p>Example: {@code c("o", Order::customerId)} &rarr; {@code o.customerId}.</p>
+	 * <p>Example: {@code col("o", Order::customerId)} &rarr; {@code o.customerId}.</p>
 	 *
 	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}, e.g. {@code "o"}
 	 * @param col   the entity getter, e.g. {@code Order::customerId}; must be a method reference and not {@code null}
 	 * @param <T>   the entity type owning the getter
 	 * @return the aliased column as an {@link Expr}
 	 */
-	public static <T> Expr c(String alias, Col<T> col) {
+	public static <T> Expr col(String alias, Col<T> col) {
 		String prop = Names.property(col);
 		return Expr.of(ctx -> alias + "." + prop);
 	}
@@ -217,7 +217,7 @@ public final class Linq {
 	/**
 	 * Wraps a sub-query so it can be used as a scalar value or projected column (in parentheses).
 	 *
-	 * <p>Example: {@code sub(SELECT(COUNT(c(Order::id))).FROM(Order.class)).AS("orderCount")}
+	 * <p>Example: {@code sub(SELECT(COUNT(col(Order::id))).FROM(Order.class)).AS("orderCount")}
 	 * &rarr; {@code (select count(o.id) from Order o) as orderCount}.</p>
 	 *
 	 * @param subquery the nested query; must not be {@code null}
@@ -232,9 +232,9 @@ public final class Linq {
 	/**
 	 * The {@code count(...)} aggregate.
 	 *
-	 * <p>Example: {@code COUNT(c(Order::id))} &rarr; {@code count(o.id)}.</p>
+	 * <p>Example: {@code COUNT(col(Order::id))} &rarr; {@code count(o.id)}.</p>
 	 *
-	 * @param arg the counted expression (e.g. {@link #c(Col)}); must not be {@code null}
+	 * @param arg the counted expression (e.g. {@link #col(Col)}); must not be {@code null}
 	 * @return the aggregate as an {@link Expr}
 	 */
 	public static Expr COUNT(Object arg) { return fn("count", arg); }
@@ -242,7 +242,7 @@ public final class Linq {
 	/**
 	 * The {@code sum(...)} aggregate.
 	 *
-	 * <p>Example: {@code SUM(c(Order::total))} &rarr; {@code sum(o.total)}.</p>
+	 * <p>Example: {@code SUM(col(Order::total))} &rarr; {@code sum(o.total)}.</p>
 	 *
 	 * @param arg the summed expression; must not be {@code null}
 	 * @return the aggregate as an {@link Expr}
@@ -252,7 +252,7 @@ public final class Linq {
 	/**
 	 * The {@code avg(...)} aggregate.
 	 *
-	 * <p>Example: {@code AVG(c(Order::discount))} &rarr; {@code avg(o.discount)}.</p>
+	 * <p>Example: {@code AVG(col(Order::discount))} &rarr; {@code avg(o.discount)}.</p>
 	 *
 	 * @param arg the averaged expression; must not be {@code null}
 	 * @return the aggregate as an {@link Expr}
@@ -262,7 +262,7 @@ public final class Linq {
 	/**
 	 * The {@code max(...)} aggregate.
 	 *
-	 * <p>Example: {@code MAX(c(Order::total))} &rarr; {@code max(o.total)}.</p>
+	 * <p>Example: {@code MAX(col(Order::total))} &rarr; {@code max(o.total)}.</p>
 	 *
 	 * @param arg the expression to take the maximum of; must not be {@code null}
 	 * @return the aggregate as an {@link Expr}
@@ -272,7 +272,7 @@ public final class Linq {
 	/**
 	 * The {@code min(...)} aggregate.
 	 *
-	 * <p>Example: {@code MIN(c(Order::total))} &rarr; {@code min(o.total)}.</p>
+	 * <p>Example: {@code MIN(col(Order::total))} &rarr; {@code min(o.total)}.</p>
 	 *
 	 * @param arg the expression to take the minimum of; must not be {@code null}
 	 * @return the aggregate as an {@link Expr}
@@ -282,7 +282,7 @@ public final class Linq {
 	/**
 	 * The {@code size(...)} function (cardinality of a collection association).
 	 *
-	 * <p>Example: {@code SIZE(c(Customer::orders))} &rarr; {@code size(c.orders)}.</p>
+	 * <p>Example: {@code SIZE(col(Customer::orders))} &rarr; {@code size(c.orders)}.</p>
 	 *
 	 * @param arg the collection-valued expression; must not be {@code null}
 	 * @return the function call as an {@link Expr}
@@ -292,7 +292,7 @@ public final class Linq {
 	/**
 	 * The {@code coalesce(...)} function returning its first non-null argument.
 	 *
-	 * <p>Example: {@code COALESCE(AVG(c(Order::discount)), 0)} &rarr; {@code coalesce(avg(o.discount), 0)}.</p>
+	 * <p>Example: {@code COALESCE(AVG(col(Order::discount)), 0)} &rarr; {@code coalesce(avg(o.discount), 0)}.</p>
 	 *
 	 * @param args the candidate expressions, in order; must not be {@code null}, should contain at
 	 *             least two non-{@code null} elements
@@ -305,7 +305,7 @@ public final class Linq {
 	/**
 	 * The {@code nullif(a, b)} function (returns {@code null} when {@code a == b}, else {@code a}).
 	 *
-	 * <p>Example: {@code NULLIF(c(Order::discount), 0)} &rarr; {@code nullif(o.discount, 0)}.</p>
+	 * <p>Example: {@code NULLIF(col(Order::discount), 0)} &rarr; {@code nullif(o.discount, 0)}.</p>
 	 *
 	 * @param a the value to test and return; must not be {@code null}
 	 * @param b the value compared against; must not be {@code null}
@@ -317,7 +317,7 @@ public final class Linq {
 		return Expr.of(ctx -> "nullif(" + ea.render(ctx) + ", " + eb.render(ctx) + ")");
 	}
 
-	// --- Col overloads: take a bare getter reference directly, e.g. COUNT(Order::id) instead of COUNT(c(Order::id)) ---
+	// --- Col overloads: take a bare getter reference directly, e.g. COUNT(Order::id) instead of COUNT(col(Order::id)) ---
 
 	/**
 	 * {@code count(column)}, e.g. {@code COUNT(Order::id)} &rarr; {@code count(o.id)}.
@@ -386,7 +386,7 @@ public final class Linq {
 	/**
 	 * The {@code row_number()} window function.
 	 *
-	 * <p>Example: {@code ROW_NUMBER().OVER(PARTITIONㅤBY(c(Order::customerId)))} &rarr;
+	 * <p>Example: {@code ROW_NUMBER().OVER(PARTITIONㅤBY(col(Order::customerId)))} &rarr;
 	 * {@code row_number() over (partition by o.customerId)}.</p>
 	 *
 	 * @return the function call as an {@link Expr}; combine with {@link Expr#OVER(Expr)}
@@ -396,7 +396,7 @@ public final class Linq {
 	/**
 	 * The {@code rank()} window function.
 	 *
-	 * <p>Example: {@code RANK().OVER(PARTITIONㅤBY(c(Order::customerId)).ORDERㅤBY(Order::total).DESC())}.</p>
+	 * <p>Example: {@code RANK().OVER(PARTITIONㅤBY(col(Order::customerId)).ORDERㅤBY(Order::total).DESC())}.</p>
 	 *
 	 * @return the function call as an {@link Expr}; combine with {@link Expr#OVER(Expr)}
 	 */
@@ -405,7 +405,7 @@ public final class Linq {
 	/**
 	 * A {@code distinct} projection modifier for a {@code SELECT} list.
 	 *
-	 * <p>Example: {@code SELECT(DISTINCT(c(Order::customerId)))} &rarr; {@code select distinct o.customerId}.</p>
+	 * <p>Example: {@code SELECT(DISTINCT(col(Order::customerId)))} &rarr; {@code select distinct o.customerId}.</p>
 	 *
 	 * @param cols the distinct expressions; must not be {@code null}, typically a single column or entity
 	 * @return the modified projection as an {@link Expr}
@@ -445,7 +445,7 @@ public final class Linq {
 	/**
 	 * A constructor (DTO) projection: {@code new fully.qualified.Dto(args...)}.
 	 *
-	 * <p>Example: {@code NEW(CustomerSummary.class, c(Customer::id), COUNT(c("o", Order::id)))}
+	 * <p>Example: {@code NEW(CustomerSummary.class, Customer::id, COUNT(col("o", Order::id)))}
 	 * &rarr; {@code new linqava.CustomerSummary(c.id, count(o.id))}.</p>
 	 *
 	 * @param dto  the DTO class whose constructor is invoked; must not be {@code null}. The
@@ -454,6 +454,25 @@ public final class Linq {
 	 * @return the constructor projection as an {@link Expr}
 	 */
 	public static Expr NEW(Class<?> dto, Object... args) {
+		return Expr.of(ctx -> "new " + dto.getName() + "(" + Expr.list(ctx, args) + ")");
+	}
+
+	/**
+	 * A constructor (DTO) projection whose first argument is a bare getter reference, e.g.
+	 * {@code NEW(CustomerSummary.class, Customer::id, col(Customer::name))} — avoids wrapping the
+	 * leading argument in {@link #col(Col)}.
+	 *
+	 * @param dto   the DTO class whose constructor is invoked; must not be {@code null}. The
+	 *              fully-qualified name ({@link Class#getName()}) is emitted.
+	 * @param first the first constructor argument (method reference); must not be {@code null}
+	 * @param rest  the remaining constructor arguments, in order; must not be {@code null}, may be empty
+	 * @param <T>   the entity type owning the first argument's column
+	 * @return the constructor projection as an {@link Expr}
+	 */
+	public static <T> Expr NEW(Class<?> dto, Col<T> first, Object... rest) {
+		Object[] args = new Object[rest.length + 1];
+		args[0] = Expr.col(first);
+		System.arraycopy(rest, 0, args, 1, rest.length);
 		return Expr.of(ctx -> "new " + dto.getName() + "(" + Expr.list(ctx, args) + ")");
 	}
 
@@ -494,7 +513,7 @@ public final class Linq {
 	 * The {@code partition by ...} clause of a window; chain {@link Expr#ORDERㅤBY(Col)} and
 	 * {@link Expr#DESC()} for ordering.
 	 *
-	 * <p>Example: {@code PARTITIONㅤBY(c(Order::customerId)).ORDERㅤBY(Order::total).DESC()}
+	 * <p>Example: {@code PARTITIONㅤBY(col(Order::customerId)).ORDERㅤBY(Order::total).DESC()}
 	 * &rarr; {@code partition by o.customerId order by o.total desc}.</p>
 	 *
 	 * @param cols the partitioning columns, in order; must not be {@code null}
@@ -502,6 +521,23 @@ public final class Linq {
 	 */
 	public static Expr ㅤPARTITIONㅤBYㅤ(Object... cols) {
 		return Expr.of(ctx -> "partition by " + Expr.list(ctx, cols));
+	}
+
+	/**
+	 * The {@code partition by ...} clause of a window, with type-safe bare column references, e.g.
+	 * {@code PARTITIONㅤBY(Order::customerId)} &rarr; {@code partition by o.customerId}.
+	 *
+	 * @param cols the partitioning columns, in order; must not be {@code null}
+	 * @param <T>  the entity type owning the columns
+	 * @return the window specification as an {@link Expr}, to be passed to {@link Expr#OVER(Expr)}
+	 */
+	@SafeVarargs
+	public static <T> Expr ㅤPARTITIONㅤBYㅤ(Col<T>... cols) {
+		Object[] exprs = new Object[cols.length];
+		for (int i = 0; i < cols.length; i++) {
+			exprs[i] = Expr.col(cols[i]);
+		}
+		return Expr.of(ctx -> "partition by " + Expr.list(ctx, exprs));
 	}
 
 	// ===== boolean predicate builders (flat, lambda-free composition) =====
@@ -733,13 +769,24 @@ public final class Linq {
 
 	/**
 	 * Collection-membership predicate ({@code value member of collection}), e.g.
-	 * {@code MEMBERㅤOF(param("product"), c(Customer::wishlist))} &rarr; {@code :product member of c.wishlist}.
+	 * {@code MEMBERㅤOF(param("product"), col(Customer::wishlist))} &rarr; {@code :product member of c.wishlist}.
 	 *
 	 * @param value      the element expression (literal/{@link #param(String)}); must not be {@code null}
 	 * @param collection the collection-valued expression; must not be {@code null}
 	 * @return a leaf predicate
 	 */
 	public static Cond ㅤMEMBERㅤOFㅤ(Object value, Object collection) { return new Cond().MEMBERㅤOF(value, collection); }
+
+	/**
+	 * Collection-membership predicate ({@code value member of collection}) with a type-safe collection
+	 * column, e.g. {@code MEMBERㅤOF(param("product"), Customer::wishlist)} &rarr; {@code :product member of c.wishlist}.
+	 *
+	 * @param value      the element expression (literal/{@link #param(String)}); must not be {@code null}
+	 * @param collection the collection-valued column getter (method reference); must not be {@code null}
+	 * @param <T>        the entity type owning the column
+	 * @return a leaf predicate
+	 */
+	public static <T> Cond ㅤMEMBERㅤOFㅤ(Object value, Col<T> collection) { return new Cond().MEMBERㅤOF(value, Expr.col(collection)); }
 
 	/**
 	 * Conjunction of predicates ({@code and}), parenthesized as a group.

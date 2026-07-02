@@ -22,7 +22,7 @@ public abstract class Expr {
 	// --- arithmetic (glyph operators) ---
 
 	/**
-	 * Addition ({@code +}), e.g. {@code c("h", "depth").ᐩ(1)} &rarr; {@code h.depth + 1}.
+	 * Addition ({@code +}), e.g. {@code col("h", "depth").ᐩ(1)} &rarr; {@code h.depth + 1}.
 	 *
 	 * @param other the right operand (Expr/literal); must not be {@code null}
 	 * @return a new expression
@@ -56,7 +56,7 @@ public abstract class Expr {
 	// --- ordering / windowing / aliasing ---
 
 	/**
-	 * Descending order marker, e.g. {@code c(Order::total).DESC()} &rarr; {@code o.total desc}.
+	 * Descending order marker, e.g. {@code col(Order::total).DESC()} &rarr; {@code o.total desc}.
 	 *
 	 * @return a new expression
 	 */
@@ -70,7 +70,7 @@ public abstract class Expr {
 	public Expr ASC() { Expr s = this; return of(c -> s.render(c) + " asc"); }
 
 	/**
-	 * Field/column alias, e.g. {@code c(User::id).AS("id")} or {@code SUM(...).AS("total")}.
+	 * Field/column alias, e.g. {@code col(User::id).AS("id")} or {@code SUM(...).AS("total")}.
 	 *
 	 * @param alias the alias name; must not be {@code null} or blank
 	 * @return a new expression
