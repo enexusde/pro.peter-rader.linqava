@@ -131,6 +131,12 @@
 	<profiles>
 		<profile>
 			<id>release</id>
+			<distributionManagement>
+				<repository>
+					<id>central</id>
+					<url>https://central.sonatype.com/api/v1/publisher</url>
+				</repository>
+			</distributionManagement>
 			<build>
 				<plugins>
 					<plugin>
