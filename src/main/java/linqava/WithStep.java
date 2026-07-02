@@ -1,22 +1,40 @@
 /*
  *  _    ___ _  _  ___https://www.e-nexus.de./
- * | |  |_ _| \| |/ _ \ __ ___ ____ _ 
+ * | |  |_ _| \| |/ _ \ __ ___ ____ _
  * | |__ | || .` | (_) / _` \ V / _` |
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
  */
 package linqava;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * The {@code WITH} phase: add further common table expressions, then start the main query with
  * {@code SELECT}. Only after {@code SELECT} does {@code FROM} become available (via {@link SelectStep}).
+ *
+ * <p>The main query's entity type isn't known until {@code SELECT} is called, so the accumulated CTEs
+ * are held here and only attached to the (then properly typed) {@link Q} once {@code SELECT} runs —
+ * this keeps the whole chain, including {@link Q#via}, cast-free.</p>
  */
 public final class WithStep {
 
-	private final Q q;
+	private static final class PendingCte {
+		final String name;
+		final Q<?> definition;
+		final boolean recursive;
 
-	WithStep(Q q) {
-		this.q = q;
+		PendingCte(String name, Q<?> definition, boolean recursive) {
+			this.name = name;
+			this.definition = definition;
+			this.recursive = recursive;
+		}
+	}
+
+	private final List<PendingCte> ctes = new ArrayList<>();
+
+	WithStep() {
 	}
 
 	/**
@@ -26,8 +44,8 @@ public final class WithStep {
 	 * @param definition the defining sub-query; must not be {@code null}
 	 * @return this {@code WITH} phase, for chaining
 	 */
-	public WithStep WITH(String name, Q definition) {
-		q.addCte(name, definition, false);
+	public WithStep WITH(String name, Q<?> definition) {
+		ctes.add(new PendingCte(name, definition, false));
 		return this;
 	}
 
@@ -38,8 +56,8 @@ public final class WithStep {
 	 * @param definition the recursive defining sub-query (anchor {@code UNION ALL} step); must not be {@code null}
 	 * @return this {@code WITH} phase, for chaining
 	 */
-	public WithStep WITH‿RECURSIVE(String name, Q definition) {
-		q.addCte(name, definition, true);
+	public WithStep WITHㅤRECURSIVE(String name, Q<?> definition) {
+		ctes.add(new PendingCte(name, definition, true));
 		return this;
 	}
 
@@ -49,9 +67,8 @@ public final class WithStep {
 	 * @param cols the projected columns/expressions, in order; must not be {@code null}, may be empty
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public SelectStep SELECTㅤ(Object... cols) {
-		q.addSelect(cols);
-		return new SelectStep(q);
+	public SelectStep<Object> SELECTㅤ(Object... cols) {
+		return new SelectStep<>(attachCtes(new Q<Object>()).addSelect(cols));
 	}
 
 	/**
@@ -62,19 +79,26 @@ public final class WithStep {
 	 * @param <A>   the entity type owning the first column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public <A> SelectStep SELECTㅤ(Col<A> first, Object... rest) {
-		q.addSelect(first, rest);
-		return new SelectStep(q);
+	public <A> SelectStep<Object> SELECTㅤ(Col<A> first, Object... rest) {
+		return new SelectStep<>(attachCtes(new Q<Object>()).addSelect(first, rest));
 	}
 
 	/**
 	 * Starts the main query as a whole-entity selection — shorthand for {@code SELECT(entity(type))}.
+	 * The selected type is threaded through to the resulting {@link Q}, so {@link Q#via} needs no cast.
 	 *
 	 * @param entityType the selected entity class; must not be {@code null}
+	 * @param <E>        the selected entity type
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public SelectStep SELECT(Class<?> entityType) {
-		q.addSelect(Linq.entity(entityType));
-		return new SelectStep(q);
+	public <E> SelectStep<E> SELECT(Class<E> entityType) {
+		return new SelectStep<>(attachCtes(new Q<>(entityType)).addSelect(Linq.entity(entityType)));
+	}
+
+	private <E> Q<E> attachCtes(Q<E> q) {
+		for (PendingCte c : ctes) {
+			q.addCte(c.name, c.definition, c.recursive);
+		}
+		return q;
 	}
 }

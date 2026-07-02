@@ -11,12 +11,14 @@ package linqava;
  * The phase right after {@code SELECT(...)}: the only legal next call is {@code FROM}. Returning a
  * distinct type here makes {@code SELECT(...).FROM(x).FROM(y)} and a missing {@code FROM}
  * impossible to write — the resulting {@link Q} no longer offers {@code SELECT} or {@code FROM}.
+ *
+ * @param <E> the selected entity type, threaded through to the resulting {@link Q}
  */
-public final class SelectStep {
+public final class SelectStep<E> {
 
-	private final Q q;
+	private final Q<E> q;
 
-	SelectStep(Q q) {
+	SelectStep(Q<E> q) {
 		this.q = q;
 	}
 
@@ -28,20 +30,20 @@ public final class SelectStep {
 	 * @param alias the alias name; must not be {@code null} or blank
 	 * @return this phase, for chaining further {@code AS}/{@code FROM}
 	 */
-	public SelectStep AS(String alias) {
+	public SelectStep<E> AS(String alias) {
 		q.aliasLastSelect(alias);
 		return this;
 	}
 
 	/**
-	 * Sets the root entity ({@code from Entity}). Declare an alias with {@link Q#ㅤASㅤ(String)} right after.
+	 * Sets the root entity ({@code from Entity}). Declare an alias with {@link Q#ㅤAS(String)} right after.
 	 *
 	 * <p>Example: {@code FROM(User.class).AS("u")} &rarr; {@code from User u}.</p>
 	 *
 	 * @param root the root entity class; must not be {@code null}
 	 * @return the query builder for the remaining clauses
 	 */
-	public Q ㅤFROMㅤ(Class<?> root) {
+	public Q<E> ㅤFROMㅤ(Class<?> root) {
 		return q.setFrom(root);
 	}
 
@@ -53,7 +55,7 @@ public final class SelectStep {
 	 * @param cteOrDerived the CTE/derived-table name; must not be {@code null} or blank
 	 * @return the query builder for the remaining clauses
 	 */
-	public Q FROM(String cteOrDerived) {
+	public Q<E> FROM(String cteOrDerived) {
 		return q.setFrom(cteOrDerived);
 	}
 }

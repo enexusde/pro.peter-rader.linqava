@@ -1,6 +1,6 @@
 /*
  *  _    ___ _  _  ___https://www.e-nexus.de./
- * | |  |_ _| \| |/ _ \ __ ___ ____ _ 
+ * | |  |_ _| \| |/ _ \ __ ___ ____ _
  * | |__ | || .` | (_) / _` \ V / _` |
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
@@ -10,7 +10,6 @@ package linqava;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Function;
 
 import jakarta.persistence.EntityManager;
 
@@ -24,17 +23,25 @@ import jakarta.persistence.EntityManager;
  * longer offers {@code SELECT} or {@code FROM}. Hence {@code FROM(x).FROM(y)}, a double {@code SELECT}
  * and a missing {@code FROM} cannot be written.</p>
  *
+ * <p>The type parameter {@code E} threads the selected entity type all the way from
+ * {@link Linq#SELECT(Class)}/{@link Linq#DISTINCT(Class)} through every clause to {@link #via}, so a
+ * single-entity query yields a typed result list with no cast anywhere. Queries that don't select a
+ * whole entity (scalar/tuple projections) carry no meaningful {@code E}; {@link #via} rejects those at
+ * runtime.</p>
+ *
  * <p>SQL keywords are methods; multi-word keywords are a single method whose words are joined by the
- * connector glyph {@code ‿} (U+203F UNDERTIE), e.g. {@code LEFT‿JOIN}, {@code GROUP‿BY},
- * {@code ORDER‿BY}, {@code UNION‿ALL}, {@code WITH‿RECURSIVE}.</p>
+ * connector glyph {@code ㅤ} (U+203F UNDERTIE), e.g. {@code LEFTㅤJOIN}, {@code GROUPㅤBY},
+ * {@code ORDERㅤBY}, {@code UNIONㅤALL}, {@code WITHㅤRECURSIVE}.</p>
+ *
+ * @param <E> the selected entity type, or an arbitrary placeholder for scalar/tuple projections
  */
-public final class Q {
+public final class Q<E> {
 
 	private static final class Cte {
 		final String name;
-		final Q definition;
+		final Q<?> definition;
 
-		Cte(String name, Q definition) {
+		Cte(String name, Q<?> definition) {
 			this.name = name;
 			this.definition = definition;
 		}
@@ -63,18 +70,26 @@ public final class Q {
 	private final List<Expr> groupBy = new ArrayList<>();
 	private Expr having;
 	private final List<Expr> orderBy = new ArrayList<>();
-	private Q unionAll;
+	private Q<?> unionAll;
+	private Class<E> entityType;
+
+	Q() {
+	}
+
+	Q(Class<E> entityType) {
+		this.entityType = entityType;
+	}
 
 	// ===== entry-phase helpers (package-private; the public entry points live on SelectStep/WithStep) =====
 
-	Q addSelect(Object... cols) {
+	Q<E> addSelect(Object... cols) {
 		for (Object o : cols) {
 			select.add(Expr.val(o));
 		}
 		return this;
 	}
 
-	<A> Q addSelect(Col<A> first, Object... rest) {
+	<A> Q<E> addSelect(Col<A> first, Object... rest) {
 		select.add(Expr.col(first));
 		for (Object o : rest) {
 			select.add(Expr.val(o));
@@ -82,25 +97,25 @@ public final class Q {
 		return this;
 	}
 
-	Q setFrom(Class<?> root) {
+	Q<E> setFrom(Class<?> root) {
 		from = src(root.getSimpleName(), true, null);
 		lastAliasable = from;
 		return this;
 	}
 
-	Q setFrom(String cteOrDerived) {
+	Q<E> setFrom(String cteOrDerived) {
 		from = src(cteOrDerived, false, null);
 		lastAliasable = from;
 		return this;
 	}
 
-	Q aliasLastSelect(String alias) {
+	Q<E> aliasLastSelect(String alias) {
 		int last = select.size() - 1;
-		select.set(last, select.get(last).ㅤASㅤ(alias));
+		select.set(last, select.get(last).ㅤAS(alias));
 		return this;
 	}
 
-	Q addCte(String name, Q definition, boolean recursiveCte) {
+	Q<E> addCte(String name, Q<?> definition, boolean recursiveCte) {
 		if (recursiveCte) {
 			recursive = true;
 		}
@@ -111,12 +126,12 @@ public final class Q {
 	// ===== clauses (available only after FROM) =====
 
 	/**
-	 * Inner-joins an entity ({@code join Entity}); follow with {@link #ㅤASㅤ(String)} and {@link #ㅤONㅤ(Cond)}.
+	 * Inner-joins an entity ({@code join Entity}); follow with {@link #ㅤAS(String)} and {@link #ㅤONㅤ(Cond)}.
 	 *
 	 * @param entity the joined entity class; must not be {@code null}
 	 * @return this builder, for chaining
 	 */
-	public Q JOIN(Class<?> entity) { return addJoin("join", src(entity.getSimpleName(), true, null)); }
+	public Q<E> JOIN(Class<?> entity) { return addJoin("join", src(entity.getSimpleName(), true, null)); }
 
 	/**
 	 * Inner-joins a CTE/derived table by name ({@code join name}).
@@ -124,7 +139,7 @@ public final class Q {
 	 * @param cte the CTE/derived-table name; must not be {@code null} or blank
 	 * @return this builder, for chaining
 	 */
-	public Q JOIN(String cte) { return addJoin("join", src(cte, false, null)); }
+	public Q<E> JOIN(String cte) { return addJoin("join", src(cte, false, null)); }
 
 	/**
 	 * Inner-joins along an association path ({@code join owner.assoc}).
@@ -136,7 +151,7 @@ public final class Q {
 	 * @param <T>  the owning entity type
 	 * @return this builder, for chaining
 	 */
-	public <T> Q JOIN(Col<T> path) { return addJoin("join", src(null, false, pathExpr(path))); }
+	public <T> Q<E> JOIN(Col<T> path) { return addJoin("join", src(null, false, pathExpr(path))); }
 
 	/**
 	 * Left-outer-joins an entity ({@code left join Entity}).
@@ -144,7 +159,7 @@ public final class Q {
 	 * @param entity the joined entity class; must not be {@code null}
 	 * @return this builder, for chaining
 	 */
-	public Q LEFT‿JOIN(Class<?> entity) { return addJoin("left join", src(entity.getSimpleName(), true, null)); }
+	public Q<E> LEFTㅤJOIN(Class<?> entity) { return addJoin("left join", src(entity.getSimpleName(), true, null)); }
 
 	/**
 	 * Left-outer-joins a CTE/derived table by name ({@code left join name}).
@@ -152,7 +167,7 @@ public final class Q {
 	 * @param cte the CTE/derived-table name; must not be {@code null} or blank
 	 * @return this builder, for chaining
 	 */
-	public Q LEFT‿JOIN(String cte) { return addJoin("left join", src(cte, false, null)); }
+	public Q<E> LEFTㅤJOIN(String cte) { return addJoin("left join", src(cte, false, null)); }
 
 	/**
 	 * Left-outer-joins along an association path ({@code left join owner.assoc}).
@@ -161,18 +176,18 @@ public final class Q {
 	 * @param <T>  the owning entity type
 	 * @return this builder, for chaining
 	 */
-	public <T> Q LEFT‿JOIN(Col<T> path) { return addJoin("left join", src(null, false, pathExpr(path))); }
+	public <T> Q<E> LEFTㅤJOIN(Col<T> path) { return addJoin("left join", src(null, false, pathExpr(path))); }
 
 	/**
 	 * Inner fetch-join along a path ({@code join fetch owner.assoc}).
 	 *
-	 * <p>Example: {@code JOIN‿FETCH(c(Customer::orders)).AS("o")} &rarr; {@code join fetch c.orders o}.</p>
+	 * <p>Example: {@code JOINㅤFETCH(c(Customer::orders)).AS("o")} &rarr; {@code join fetch c.orders o}.</p>
 	 *
 	 * @param path the fetch path; the first element is used. Must not be {@code null} or empty;
 	 *             pass a single {@link Linq#c(Col)}/{@link Linq#c(String)} expression
 	 * @return this builder, for chaining
 	 */
-	public Q JOIN‿FETCH(Object... path) { return addJoin("join fetch", src(null, false, Expr.val(path[0]))); }
+	public Q<E> JOINㅤFETCH(Object... path) { return addJoin("join fetch", src(null, false, Expr.val(path[0]))); }
 
 	/**
 	 * Left-outer fetch-join along a path ({@code left join fetch owner.assoc}).
@@ -180,58 +195,50 @@ public final class Q {
 	 * @param path the fetch path; the first element is used. Must not be {@code null} or empty
 	 * @return this builder, for chaining
 	 */
-	public Q LEFT‿JOIN‿FETCH(Object... path) { return addJoin("left join fetch", src(null, false, Expr.val(path[0]))); }
-
-	/**
-	 * The {@code on} condition for the most recently added join, built via a lambda.
-	 *
-	 * <p>Example: {@code .JOIN(Customer.class).AS("c").ON($ -> $.ᆖ(Customer::id, c("o", Order::customerId)))}.</p>
-	 *
-	 * @param predicate builds the condition from a fresh {@link Cond}; must not be {@code null}
-	 * @return this builder, for chaining
-	 * @throws IndexOutOfBoundsException if no join has been added yet
-	 */
-	public Q ㅤONㅤ(Function<Cond, Cond> predicate) {
-		joins.get(joins.size() - 1).on = predicate.apply(new Cond()).expr;
-		return this;
-	}
+	public Q<E> LEFTㅤJOINㅤFETCH(Object... path) { return addJoin("left join fetch", src(null, false, Expr.val(path[0]))); }
 
 	/**
 	 * The {@code on} condition for the most recently added join, from a pre-built predicate
-	 * (see {@link Linq#ㅤANDㅤ(Cond...)} / {@link Linq#ᆖ(Col, Object)}).
+	 * (see {@link Linq#ㅤANDㅤ(Cond...)} / {@link Linq#ㅤᆖㅤ(Col, Object)}).
 	 *
 	 * @param predicate the join condition; must not be {@code null}
 	 * @return this builder, for chaining
 	 * @throws IndexOutOfBoundsException if no join has been added yet
 	 */
-	public Q ㅤONㅤ(Cond predicate) {
+	public Q<E> ㅤONㅤ(Cond predicate) {
 		joins.get(joins.size() - 1).on = predicate.expr;
 		return this;
 	}
 
 	/**
-	 * The {@code where} clause, built via a lambda on a fresh condition context.
+	 * The {@code on} condition for the most recently added join, started from a bare column; follow
+	 * with a comparison operator on the returned {@link WhereStep} to supply the right-hand value.
 	 *
-	 * <p>Example: {@code WHERE($ -> $.ᆖ(User::Name, "John"))} &rarr; {@code where Name = 'John'}.</p>
+	 * <p>Example: {@code .JOIN(Customer.class).AS("c").ON(Customer::id).ᆖ(c("o", Order::customerId))}.</p>
 	 *
-	 * @param predicate builds the condition from a fresh {@link Cond}; must not be {@code null}
-	 * @return this builder, for chaining
+	 * @param col the left column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the column
+	 * @return the pending comparison, awaiting an operator
+	 * @throws IndexOutOfBoundsException if no join has been added yet
 	 */
-	public Q WHEREㅤ(Function<Cond, Cond> predicate) {
-		where = predicate.apply(new Cond()).expr;
-		return this;
+	public <T> WhereStep<E> ㅤONㅤ(Col<T> col) {
+		Join j = joins.get(joins.size() - 1);
+		return new WhereStep<>(Expr.col(col), "and", (predicate, connector) -> {
+			j.on = predicate;
+			return this;
+		});
 	}
 
 	/**
 	 * The {@code where} clause from a pre-built predicate — convenient for flat, lambda-free
-	 * composition with {@link Linq#ㅤANDㅤ(Cond...)} / {@link Linq#OR(Cond...)}.
+	 * composition with {@link Linq#ㅤANDㅤ(Cond...)} / {@link Linq#ㅤORㅤ(Cond...)}.
 	 *
 	 * <p>Example: {@code WHERE(AND(ᆖ(Order::status, "PAID"), ᐳ(Order::total, 100)))}.</p>
 	 *
 	 * @param predicate the condition; must not be {@code null}
 	 * @return this builder, for chaining
 	 */
-	public Q ㅤWHEREㅤ(Cond predicate) {
+	public Q<E> ㅤWHEREㅤ(Cond predicate) {
 		where = predicate.expr;
 		return this;
 	}
@@ -246,8 +253,22 @@ public final class Q {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<T> ㅤWHEREㅤ(Col<T> col) {
-		return new WhereStep<>(this, col, "and");
+	public <T> WhereStep<E> ㅤWHEREㅤ(Col<T> col) {
+		return where(Expr.col(col), "and");
+	}
+
+	/**
+	 * The {@code where} clause, started from an arbitrary left expression (e.g. an aggregate, a
+	 * {@code TREAT(...)}-cast member access or an aliased column); follow with a comparison operator
+	 * on the returned {@link WhereStep}.
+	 *
+	 * <p>Example: {@code WHERE(c("r", "rnk")).ᆖ(1)} &rarr; {@code where r.rnk = 1}.</p>
+	 *
+	 * @param left the left operand; must not be {@code null}
+	 * @return the pending comparison, awaiting an operator
+	 */
+	public WhereStep<E> ㅤWHEREㅤ(Object left) {
+		return where(Expr.val(left), "and");
 	}
 
 	/**
@@ -260,29 +281,58 @@ public final class Q {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<T> ㅤANDㅤ(Col<T> col) {
-		return new WhereStep<>(this, col, "and");
+	public <T> WhereStep<E> ㅤANDㅤ(Col<T> col) {
+		return where(Expr.col(col), "and");
 	}
 
 	/**
-	 * Finishes a {@link WhereStep} comparison by appending {@code col op r} to the {@code where} clause.
+	 * Appends another expression-led predicate to the {@code where} clause, joined with {@code and}.
+	 *
+	 * @param left the left operand; must not be {@code null}
+	 * @return the pending comparison, awaiting an operator
 	 */
-	Q appendWhere(Col<?> col, String op, Object r, String connector) {
-		Expr left = Expr.col(col);
-		Expr predicate = Expr.of(c -> left.render(c) + " " + op + " " + Expr.val(r).render(c));
-		where = (where == null) ? predicate : Expr.bin(where, connector, predicate);
-		return this;
+	public WhereStep<E> ㅤANDㅤ(Object left) {
+		return where(Expr.val(left), "and");
+	}
+
+	/**
+	 * Appends another column-led predicate to the {@code where} clause, joined with {@code or};
+	 * follow with a comparison operator on the returned {@link WhereStep}.
+	 *
+	 * @param col the left column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the column
+	 * @return the pending comparison, awaiting an operator
+	 */
+	public <T> WhereStep<E> ㅤORㅤ(Col<T> col) {
+		return where(Expr.col(col), "or");
+	}
+
+	/**
+	 * Appends another expression-led predicate to the {@code where} clause, joined with {@code or}.
+	 *
+	 * @param left the left operand; must not be {@code null}
+	 * @return the pending comparison, awaiting an operator
+	 */
+	public WhereStep<E> ㅤORㅤ(Object left) {
+		return where(Expr.val(left), "or");
+	}
+
+	private WhereStep<E> where(Expr left, String connector) {
+		return new WhereStep<>(left, connector, (predicate, conn) -> {
+			where = (where == null) ? predicate : Expr.bin(where, conn, predicate);
+			return this;
+		});
 	}
 
 	/**
 	 * The {@code group by} clause.
 	 *
-	 * <p>Example: {@code GROUP‿BY(c(Order::customerId))} &rarr; {@code group by o.customerId}.</p>
+	 * <p>Example: {@code GROUPㅤBY(c(Order::customerId))} &rarr; {@code group by o.customerId}.</p>
 	 *
 	 * @param cols the grouping expressions, in order; must not be {@code null} or empty
 	 * @return this builder, for chaining
 	 */
-	public Q GROUP‿BY(Object... cols) {
+	public Q<E> GROUPㅤBY(Object... cols) {
 		for (Object o : cols) {
 			groupBy.add(Expr.val(o));
 		}
@@ -290,38 +340,47 @@ public final class Q {
 	}
 
 	/**
-	 * The {@code having} clause, built via a lambda on a fresh condition context.
+	 * The {@code having} clause from a pre-built predicate — convenient for flat, lambda-free
+	 * composition of multiple conditions via {@code .AND()}/{@code .OR()} on a leading
+	 * {@link Linq} predicate function.
 	 *
-	 * <p>Example: {@code HAVING($ -> $.ᐳ(COUNT(c(Order::id)), 5))} &rarr; {@code having count(o.id) > 5}.</p>
-	 *
-	 * @param predicate builds the condition from a fresh {@link Cond}; must not be {@code null}
-	 * @return this builder, for chaining
-	 */
-	public Q HAVING(Function<Cond, Cond> predicate) {
-		having = predicate.apply(new Cond()).expr;
-		return this;
-	}
-
-	/**
-	 * The {@code having} clause from a pre-built predicate.
+	 * <p>Example: {@code HAVING(ᐳ(COUNT(Order::id), 5).AND().ᐳ(SUM(Order::total), 1000))}.</p>
 	 *
 	 * @param predicate the condition; must not be {@code null}
 	 * @return this builder, for chaining
 	 */
-	public Q HAVING(Cond predicate) {
+	public Q<E> HAVING(Cond predicate) {
 		having = predicate.expr;
 		return this;
 	}
 
 	/**
+	 * The {@code having} clause, started from an arbitrary left expression (typically an aggregate
+	 * such as {@link Linq#COUNT(Object)}/{@link Linq#SUM(Object)}); follow with a comparison operator
+	 * on the returned {@link WhereStep}.
+	 *
+	 * <p>Example: {@code HAVING(SUM(Order::total)).ᐳ(1000)} &rarr; {@code having sum(o.total) > 1000}.</p>
+	 *
+	 * @param left the left operand; must not be {@code null}
+	 * @return the pending comparison, awaiting an operator
+	 */
+	public WhereStep<E> HAVING(Object left) {
+		Expr l = Expr.val(left);
+		return new WhereStep<>(l, "and", (predicate, connector) -> {
+			having = (having == null) ? predicate : Expr.bin(having, connector, predicate);
+			return this;
+		});
+	}
+
+	/**
 	 * The {@code order by} clause. Append {@link Expr#DESC()}/{@link Expr#ASC()} to an element for direction.
 	 *
-	 * <p>Example: {@code ORDER‿BY(SUM(c(Order::total)).DESC())} &rarr; {@code order by sum(o.total) desc}.</p>
+	 * <p>Example: {@code ORDERㅤBY(SUM(c(Order::total)).DESC())} &rarr; {@code order by sum(o.total) desc}.</p>
 	 *
 	 * @param cols the ordering expressions, in order; must not be {@code null} or empty
 	 * @return this builder, for chaining
 	 */
-	public Q ㅤORDER‿BYㅤ(Object... cols) {
+	public Q<E> ㅤORDERㅤBYㅤ(Object... cols) {
 		for (Object o : cols) {
 			orderBy.add(Expr.val(o));
 		}
@@ -329,14 +388,33 @@ public final class Q {
 	}
 
 	/**
+	 * The {@code order by} clause, started from an alias-qualified column; follow with
+	 * {@link OrderByStep#DESC()}/{@link OrderByStep#ASC()} to supply the direction.
+	 *
+	 * <p>Example: {@code ORDER‿BY("b", "total").DESC()} &rarr; {@code order by b.total desc}.</p>
+	 *
+	 * @param alias the range-variable alias; must not be {@code null}, e.g. {@code "b"}
+	 * @param field the field name; must not be {@code null}, e.g. {@code "total"}
+	 * @return the pending ordering, awaiting a direction
+	 */
+	public OrderByStep<E> ㅤORDERㅤBYㅤ(String alias, String field) {
+		return new OrderByStep<>(this, Linq.c(alias, field));
+	}
+
+	Q<E> addOrderBy(Expr e) {
+		orderBy.add(e);
+		return this;
+	}
+
+	/**
 	 * Appends a {@code union all} with another query.
 	 *
-	 * <p>Example: {@code q1.UNION‿ALL(q2)} &rarr; {@code <q1> union all <q2>}.</p>
+	 * <p>Example: {@code q1.UNIONㅤALL(q2)} &rarr; {@code <q1> union all <q2>}.</p>
 	 *
 	 * @param other the query to append; must not be {@code null}
 	 * @return this builder, for chaining
 	 */
-	public Q UNION‿ALL(Q other) {
+	public Q<E> UNIONㅤALL(Q<?> other) {
 		unionAll = other;
 		return this;
 	}
@@ -350,7 +428,7 @@ public final class Q {
 	 * @return this builder, for chaining
 	 * @throws NullPointerException if no {@code FROM}/{@code JOIN} precedes this call
 	 */
-	public Q ㅤASㅤ(String alias) {
+	public Q<E> ㅤAS(String alias) {
 		lastAliasable.alias = alias;
 		return this;
 	}
@@ -360,7 +438,7 @@ public final class Q {
 	/**
 	 * Renders this finished statement to its HQL string.
 	 *
-	 * <p>Example: {@code SELECT(c(User::id)).FROM(User.class).WHERE($ -> $.ᆖ(User::Name, "John")).getHql()}
+	 * <p>Example: {@code SELECT(c(User::id)).FROM(User.class).WHERE(User::Name).ᆖ("John").getHql()}
 	 * returns {@code "select id from User where Name = 'John'"}.</p>
 	 *
 	 * @return the HQL text; never {@code null}. ({@code SELECT} and {@code FROM} are guaranteed by the
@@ -415,31 +493,30 @@ public final class Q {
 	/**
 	 * Executes this query as a typed entity query and returns its result list. Only valid when the
 	 * projection selects instances of exactly one entity, i.e. the {@code SELECT} list is a single
-	 * whole-entity selection — {@link Linq#SELECTㅤ(Class)} or {@link Linq#DISTINCTㅤ(Class)}.
+	 * whole-entity selection — {@link Linq#SELECTㅤ(Class)} or {@link Linq#DISTINCTㅤ(Class)}. The
+	 * selected type {@code E} is threaded through from that call, so no cast is needed here or at the
+	 * call site.
 	 *
 	 * <p>Example:</p>
 	 * <pre>{@code
-	 * Q q = SELECT(entity(Order.class)).FROM(Order.class).AS("o");   // "select o from Order o"
+	 * Q<Order> q = SELECT(Order.class).FROM(Order.class).AS("o");   // "select o from Order o"
 	 * List<Order> orders = q.via(entityManager);
 	 * }</pre>
 	 *
-	 * @param em  the JPA entity manager used to create and run the query; must not be {@code null}
-	 * @param <T> the selected entity type, inferred from the assignment target
+	 * @param em the JPA entity manager used to create and run the query; must not be {@code null}
 	 * @return the (possibly empty) list of entities; never {@code null}
 	 * @throws NullPointerException  if {@code em} is {@code null}
 	 * @throws IllegalStateException if the query does not select a single entity (e.g. it is a
 	 *                               scalar/tuple projection); use {@code em.createQuery(getHql())} for those
 	 */
-	@SuppressWarnings("unchecked")
-	public <T> List<T> via(EntityManager em) {
+	public List<E> via(EntityManager em) {
 		Objects.requireNonNull(em, "em");
-		if (select.size() != 1 || !(select.get(0) instanceof EntityExpr)) {
+		if (select.size() != 1 || !(select.get(0) instanceof EntityExpr) || entityType == null) {
 			throw new IllegalStateException(
 					"via(EntityManager) requires a query selecting a single entity, "
 							+ "e.g. SELECT(entity(Order.class)); for projections use em.createQuery(getHql())");
 		}
-		Class<T> type = (Class<T>) ((EntityExpr) select.get(0)).type;
-		return em.createQuery(getHql(), type).getResultList();
+		return em.createQuery(getHql(), entityType).getResultList();
 	}
 
 	private RenderCtx renderCtx() {
@@ -460,7 +537,7 @@ public final class Q {
 		return s.alias == null ? head : head + " " + s.alias;
 	}
 
-	private Q addJoin(String type, Src target) {
+	private Q<E> addJoin(String type, Src target) {
 		Join j = new Join();
 		j.type = type;
 		j.target = target;

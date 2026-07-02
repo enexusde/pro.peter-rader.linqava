@@ -9,7 +9,6 @@ package linqava;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Fluent, compile-time-safe {@code CASE WHEN ... THEN ... [ELSE ...] END} expression builder.
@@ -19,13 +18,13 @@ import java.util.function.Function;
  * a {@code WHEN} without a following {@code THEN}, a duplicate {@code THEN} and a {@code THEN} without
  * a {@code WHEN} are all rejected by the compiler.</p>
  *
- * <p>Allowed flow: {@code CASE()} &rarr; {@link #WHEN(Function) WHEN} &rarr; {@link Then#THEN(Object) THEN}
+ * <p>Allowed flow: {@code CASE()} &rarr; {@link #WHEN(Cond) WHEN} &rarr; {@link Then#THEN(Object) THEN}
  * &rarr; (another {@code WHEN} | {@link Body#ELSE(Object) ELSE} | {@link Body#END() END}); after
  * {@code ELSE} only {@link End#END() END} remains.</p>
  *
  * <pre>{@code
- * CASE().WHEN($ -> $.ᐳᆖ(Order::total, 1000)).THEN("GOLD")
- *       .WHEN($ -> $.ᐳᆖ(Order::total, 100)).THEN("SILVER")
+ * CASE().WHEN(ᐳᆖ(Order::total, 1000)).THEN("GOLD")
+ *       .WHEN(ᐳᆖ(Order::total, 100)).THEN("SILVER")
  *       .ELSE("BRONZE").END()
  * }</pre>
  */
@@ -41,11 +40,11 @@ public final class Case {
 	/**
 	 * Adds the first {@code WHEN condition} branch.
 	 *
-	 * @param condition builds the branch condition from a fresh {@link Cond}; must not be {@code null}
+	 * @param condition the branch condition, e.g. {@code ᐳᆖ(Order::total, 1000)}; must not be {@code null}
 	 * @return the next step, which requires a {@link Then#THEN(Object) THEN}
 	 */
-	public Then WHEN(Function<Cond, Cond> condition) {
-		whens.add(condition.apply(new Cond()).expr);
+	public Then WHEN(Cond condition) {
+		whens.add(condition.expr);
 		return new Then();
 	}
 
@@ -93,11 +92,11 @@ public final class Case {
 		/**
 		 * Adds a further {@code WHEN condition} branch.
 		 *
-		 * @param condition builds the branch condition from a fresh {@link Cond}; must not be {@code null}
+		 * @param condition the branch condition, e.g. {@code ᐳᆖ(Order::total, 100)}; must not be {@code null}
 		 * @return the next step, which requires a {@link Then#THEN(Object) THEN}
 		 */
-		public Then WHEN(Function<Cond, Cond> condition) {
-			whens.add(condition.apply(new Cond()).expr);
+		public Then WHEN(Cond condition) {
+			whens.add(condition.expr);
 			return new Then();
 		}
 

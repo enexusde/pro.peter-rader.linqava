@@ -75,12 +75,12 @@ public abstract class Expr {
 	 * @param alias the alias name; must not be {@code null} or blank
 	 * @return a new expression
 	 */
-	public Expr ㅤASㅤ(String alias) { Expr s = this; return of(c -> s.render(c) + " as " + alias); }
+	public Expr ㅤAS(String alias) { Expr s = this; return of(c -> s.render(c) + " as " + alias); }
 
 	/**
-	 * Window clause, e.g. {@code ROW_NUMBER().OVER(PARTITION‿BY(...))} &rarr; {@code row_number() over (...)}.
+	 * Window clause, e.g. {@code ROW_NUMBER().OVER(PARTITIONㅤBY(...))} &rarr; {@code row_number() over (...)}.
 	 *
-	 * @param window the window specification (see {@link Linq#PARTITION‿BY(Object...)}); must not be {@code null}
+	 * @param window the window specification (see {@link Linq#ㅤPARTITIONㅤBYㅤ(Object...)}); must not be {@code null}
 	 * @return a new expression
 	 */
 	public Expr OVER(Expr window) { Expr s = this; return of(c -> s.render(c) + " over (" + window.render(c) + ")"); }
@@ -91,17 +91,17 @@ public abstract class Expr {
 	 * @param keys the ordering expressions, in order; must not be {@code null} or empty
 	 * @return a new expression
 	 */
-	public Expr ORDER‿BY(Object... keys) { Expr s = this; return of(c -> s.render(c) + " order by " + list(c, keys)); }
+	public Expr ORDERㅤBY(Object... keys) { Expr s = this; return of(c -> s.render(c) + " order by " + list(c, keys)); }
 
 	/**
 	 * Window ordering by a bare column reference, e.g.
-	 * {@code PARTITION‿BY(...).ORDER‿BY(Order::total).DESC()} &rarr; {@code partition by ... order by o.total desc}.
+	 * {@code PARTITIONㅤBY(...).ORDERㅤBY(Order::total).DESC()} &rarr; {@code partition by ... order by o.total desc}.
 	 *
 	 * @param key the column getter (method reference); must not be {@code null}
 	 * @param <T> the entity type owning the column
 	 * @return a new expression; chain {@link #DESC()}/{@link #ASC()} for direction
 	 */
-	public <T> Expr ORDER‿BY(Col<T> key) { Expr s = this; Expr k = col(key); return of(c -> s.render(c) + " order by " + k.render(c)); }
+	public <T> Expr ORDERㅤBY(Col<T> key) { Expr s = this; Expr k = col(key); return of(c -> s.render(c) + " order by " + k.render(c)); }
 
 	/**
 	 * Member access on a {@code TREAT(...)} result, e.g.

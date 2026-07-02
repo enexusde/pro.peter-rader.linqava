@@ -13,7 +13,7 @@ package linqava;
  * <p>SQL operators live in Unicode categories ({@code Sm}/{@code So}/{@code Sk}) that are <b>not</b>
  * legal Java identifiers, so each is mapped to a visually similar character that <b>is</b> a legal
  * identifier part ({@link Character#isJavaIdentifierPart(int)} {@code == true}). The connector for
- * multi-word keywords ("left join" &rarr; {@code LEFT‿JOIN}) is a connector-punctuation glyph.</p>
+ * multi-word keywords ("left join" &rarr; {@code LEFTㅤJOIN}) is a connector-punctuation glyph.</p>
  *
  * <table border="1">
  *   <caption>SQL token &rarr; Java glyph</caption>
@@ -28,7 +28,7 @@ package linqava;
  *   <tr><td>-</td>  <td>ｰ</td><td>U+FF70</td><td>HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK</td><td>Lm</td></tr>
  *   <tr><td>*</td>  <td>ᚷ</td><td>U+16B7</td><td>RUNIC LETTER GEBO GYFU</td><td>Lo</td></tr>
  *   <tr><td>/</td>  <td>ノ</td><td>U+30CE</td><td>KATAKANA LETTER NO</td><td>Lo</td></tr>
- *   <tr><td>(space in "left join")</td><td>‿</td><td>U+203F</td><td>UNDERTIE</td><td>Pc</td></tr>
+ *   <tr><td>(space in "left join")</td><td>ㅤ</td><td>U+203F</td><td>UNDERTIE</td><td>Pc</td></tr>
  * </table>
  *
  * <p>Note: U+A78A "MODIFIER LETTER SHORT EQUALS SIGN" looks like the perfect "=" but is category
@@ -60,6 +60,6 @@ public final class Glyphs {
 	/** Glyph for {@code /} (U+30CE). */
 	public static final String DIV = "ノ";
 
-	/** Connector replacing the space inside multi-word keywords, e.g. "left join" -> LEFT‿JOIN. */
-	public static final String JOIN_CONNECTOR = "‿"; // ‿
+	/** Connector replacing the space inside multi-word keywords, e.g. "left join" -> LEFTㅤJOIN. */
+	public static final String JOIN_CONNECTOR = "ㅤ"; // ㅤ
 }

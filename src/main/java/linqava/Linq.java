@@ -14,9 +14,9 @@ package linqava;
  * <pre>{@code
  * import static linqava.Linq.*;
  *
- * Q q = SELECT(c(User::id))
+ * Q<?> q = SELECT(c(User::id))
  *           .FROM(User.class)
- *           .WHERE($ -> $.ᆖ(User::Name, "John"));
+ *           .WHERE(User::Name).ᆖ("John");
  * q.getHql(); // "select id from User where Name = 'John'"
  * }</pre>
  *
@@ -43,7 +43,7 @@ public final class Linq {
 	 *             renders as the literal text {@code null}). May be empty.
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static SelectStep SELECTㅤ(Object... cols) { return new SelectStep(new Q().addSelect(cols)); }
+	public static SelectStep<Object> SELECTㅤ(Object... cols) { return new SelectStep<>(new Q<Object>().addSelect(cols)); }
 
 	/**
 	 * Starts a {@code SELECT} whose first column is a bare getter reference, e.g.
@@ -54,18 +54,35 @@ public final class Linq {
 	 * @param <A>   the entity type owning the first column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <A> SelectStep SELECTㅤ(Col<A> first, Object... rest) { return new SelectStep(new Q().addSelect(first, rest)); }
+	public static <A> SelectStep<Object> SELECTㅤ(Col<A> first, Object... rest) { return new SelectStep<>(new Q<Object>().addSelect(first, rest)); }
 
 	/**
-	 * Starts a {@code SELECT} of a whole entity — shorthand for {@code SELECT(entity(type))}.
+	 * Starts a {@code SELECT} of a whole entity — shorthand for {@code SELECT(entity(type))}. The
+	 * selected type is threaded through to the resulting {@link Q}, so {@link Q#via} needs no cast.
 	 *
 	 * <p>Example: {@code SELECT(Order.class).FROM(Order.class).AS("o")} &rarr; {@code select o from Order o}.
 	 * Such single-entity queries can be run with {@link Q#via(jakarta.persistence.EntityManager)}.</p>
 	 *
 	 * @param entityType the selected entity class; must not be {@code null}, e.g. {@code Order.class}
+	 * @param <E>        the selected entity type
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static SelectStep SELECTㅤ(Class<?> entityType) { return new SelectStep(new Q().addSelect(entity(entityType))); }
+	public static <E> SelectStep<E> SELECTㅤ(Class<E> entityType) {
+		return new SelectStep<>(new Q<>(entityType).addSelect(entity(entityType)));
+	}
+
+	/**
+	 * Starts a {@code SELECT} of a whole (possibly {@code distinct}) entity wrapped by
+	 * {@link #DISTINCTㅤ(Class)} — the selected type is threaded through just like
+	 * {@link #SELECTㅤ(Class)}.
+	 *
+	 * @param entity the distinct entity marker, e.g. {@code DISTINCT(Customer.class)}; must not be {@code null}
+	 * @param <E>    the selected entity type
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <E> SelectStep<E> SELECTㅤ(EntityExpr<E> entity) {
+		return new SelectStep<>(new Q<>(entity.type).addSelect(entity));
+	}
 
 	/**
 	 * Starts a query with a common table expression ({@code WITH name AS (definition)}).
@@ -77,20 +94,20 @@ public final class Linq {
 	 * @param definition the sub-query defining the CTE; must not be {@code null}
 	 * @return the {@code WITH} phase; chain {@link WithStep#WITH(String, Q)} for further CTEs, then {@code SELECT}
 	 */
-	public static WithStep WITH(String name, Q definition) { return new WithStep(new Q().addCte(name, definition, false)); }
+	public static WithStep WITH(String name, Q<?> definition) { return new WithStep().WITH(name, definition); }
 
 	/**
 	 * Starts a query with a recursive common table expression ({@code WITH RECURSIVE name AS (...)}).
 	 *
 	 * <p>Example: the {@code definition} is usually an anchor query joined to the recursive part via
-	 * {@link Q#UNION‿ALL(Q)}.</p>
+	 * {@link Q#UNIONㅤALL(Q)}.</p>
 	 *
 	 * @param name       the CTE name (also used inside the recursive part as a {@link Q#JOIN(String)}
 	 *                   target); must not be {@code null} or blank
 	 * @param definition the recursive sub-query (anchor {@code UNION ALL} recursive step); must not be {@code null}
 	 * @return the {@code WITH} phase; continue with {@code SELECT}
 	 */
-	public static WithStep WITH‿RECURSIVE(String name, Q definition) { return new WithStep(new Q().addCte(name, definition, true)); }
+	public static WithStep WITHㅤRECURSIVE(String name, Q<?> definition) { return new WithStep().WITHㅤRECURSIVE(name, definition); }
 
 	// ===== column / value helpers =====
 
@@ -159,16 +176,16 @@ public final class Linq {
 
 	/**
 	 * The whole entity, rendered as its alias. Package-private: users select a whole entity via the
-	 * dedicated overloads {@link #SELECTㅤ(Class)}, {@link #DISTINCTㅤ(Class)} and {@link #TREAT(Class, Class)}
+	 * dedicated overloads {@link #SELECTㅤ(Class)}, {@link #DISTINCTㅤ(Class)} and {@link #ㅤTREATㅤ(Class, Class)}
 	 * instead of calling this directly.
 	 */
-	static Expr entity(Class<?> type) {
+	static <E> EntityExpr<E> entity(Class<E> type) {
 		String name = type.getSimpleName();
 		Expr render = Expr.of(ctx -> {
 			String a = ctx.aliasFor(name);
 			return a == null ? name : a;
 		});
-		return new EntityExpr(type, render);
+		return new EntityExpr<>(type, render);
 	}
 
 	/**
@@ -369,7 +386,7 @@ public final class Linq {
 	/**
 	 * The {@code row_number()} window function.
 	 *
-	 * <p>Example: {@code ROW_NUMBER().OVER(PARTITION‿BY(c(Order::customerId)))} &rarr;
+	 * <p>Example: {@code ROW_NUMBER().OVER(PARTITIONㅤBY(c(Order::customerId)))} &rarr;
 	 * {@code row_number() over (partition by o.customerId)}.</p>
 	 *
 	 * @return the function call as an {@link Expr}; combine with {@link Expr#OVER(Expr)}
@@ -379,7 +396,7 @@ public final class Linq {
 	/**
 	 * The {@code rank()} window function.
 	 *
-	 * <p>Example: {@code RANK().OVER(PARTITION‿BY(c(Order::customerId)).ORDER‿BY(Order::total).DESC())}.</p>
+	 * <p>Example: {@code RANK().OVER(PARTITIONㅤBY(c(Order::customerId)).ORDERㅤBY(Order::total).DESC())}.</p>
 	 *
 	 * @return the function call as an {@link Expr}; combine with {@link Expr#OVER(Expr)}
 	 */
@@ -397,23 +414,32 @@ public final class Linq {
 		Expr base = Expr.of(ctx -> "distinct " + Expr.list(ctx, cols));
 		// Preserve the single-entity marker so SELECT(DISTINCT(entity)) still yields a typed result list.
 		if (cols.length == 1 && cols[0] instanceof EntityExpr) {
-			return new EntityExpr(((EntityExpr) cols[0]).type, base);
+			return preserveEntity((EntityExpr<?>) cols[0], base);
 		}
 		return base;
 	}
 
+	private static <E> EntityExpr<E> preserveEntity(EntityExpr<E> e, Expr base) {
+		return new EntityExpr<>(e.type, base);
+	}
+
 	/**
-	 * {@code distinct} of a whole entity — shorthand for {@code DISTINCT(entity(type))}.
+	 * {@code distinct} of a whole entity — shorthand for {@code DISTINCT(entity(type))}. The selected
+	 * type is preserved, so {@code SELECT(DISTINCT(...))} still threads through to a cast-free
+	 * {@link Q#via}.
 	 *
 	 * <p>Example: {@code SELECT(DISTINCT(Customer.class)).FROM(Customer.class).AS("c")}
 	 * &rarr; {@code select distinct c from Customer c}. The result still works with
 	 * {@link Q#via(jakarta.persistence.EntityManager)}.</p>
 	 *
 	 * @param entityType the distinct entity class; must not be {@code null}, e.g. {@code Customer.class}
-	 * @return the distinct entity projection as an {@link Expr}
+	 * @param <E>        the distinct entity type
+	 * @return the distinct entity projection
 	 */
-	public static Expr DISTINCTㅤ(Class<?> entityType) {
-		return DISTINCT(entity(entityType));
+	public static <E> EntityExpr<E> DISTINCTㅤ(Class<E> entityType) {
+		EntityExpr<E> e = entity(entityType);
+		Expr base = Expr.of(ctx -> "distinct " + e.render(ctx));
+		return new EntityExpr<>(entityType, base);
 	}
 
 	/**
@@ -442,7 +468,7 @@ public final class Linq {
 	 * @param type the target subtype; must not be {@code null}. Its simple name is emitted.
 	 * @return the cast as an {@link Expr}
 	 */
-	public static Expr TREAT(Object expr, Class<?> type) {
+	public static Expr ㅤTREATㅤ(Object expr, Class<?> type) {
 		Expr e = Expr.val(expr);
 		return Expr.of(ctx -> "treat(" + e.render(ctx) + " as " + type.getSimpleName() + ")");
 	}
@@ -458,23 +484,23 @@ public final class Linq {
 	 * @param subtype  the target subtype; must not be {@code null}. Its simple name is emitted.
 	 * @return the cast as an {@link Expr}
 	 */
-	public static Expr TREAT(Class<?> rootType, Class<?> subtype) {
-		return TREAT(entity(rootType), subtype);
+	public static Expr ㅤTREATㅤ(Class<?> rootType, Class<?> subtype) {
+		return ㅤTREATㅤ(entity(rootType), subtype);
 	}
 
 	// ===== window helper =====
 
 	/**
-	 * The {@code partition by ...} clause of a window; chain {@link Expr#ORDER‿BY(Col)} and
+	 * The {@code partition by ...} clause of a window; chain {@link Expr#ORDERㅤBY(Col)} and
 	 * {@link Expr#DESC()} for ordering.
 	 *
-	 * <p>Example: {@code PARTITION‿BY(c(Order::customerId)).ORDER‿BY(Order::total).DESC()}
+	 * <p>Example: {@code PARTITIONㅤBY(c(Order::customerId)).ORDERㅤBY(Order::total).DESC()}
 	 * &rarr; {@code partition by o.customerId order by o.total desc}.</p>
 	 *
 	 * @param cols the partitioning columns, in order; must not be {@code null}
 	 * @return the window specification as an {@link Expr}, to be passed to {@link Expr#OVER(Expr)}
 	 */
-	public static Expr PARTITION‿BY(Object... cols) {
+	public static Expr ㅤPARTITIONㅤBYㅤ(Object... cols) {
 		return Expr.of(ctx -> "partition by " + Expr.list(ctx, cols));
 	}
 
@@ -487,21 +513,21 @@ public final class Linq {
 	 *
 	 * @param l   the left column getter (method reference); must not be {@code null}
 	 * @param r   the right operand: an {@link Expr}, a {@link #param(String)}, a sub-query {@link Q}
-	 *            or a literal. To test for null use {@link Cond#IS‿NULL(Col)} — passing {@code null}
+	 *            or a literal. To test for null use {@link Cond#ISㅤNULL(Col)} — passing {@code null}
 	 *            here renders the literal text {@code null}.
 	 * @param <T> the entity type owning the left column
-	 * @return a leaf predicate; combine with {@link #ㅤANDㅤ(Cond...)} / {@link #OR(Cond...)}
+	 * @return a leaf predicate; combine with {@link #ㅤANDㅤ(Cond...)} / {@link #ㅤORㅤ(Cond...)}
 	 */
-	public static <T> Cond ᆖ(Col<T> l, Object r) { return new Cond().ᆖ(l, r); }   // =
+	public static <T> Cond ㅤᆖㅤ(Col<T> l, Object r) { return new Cond().ᆖ(l, r); }   // =
 
 	/**
 	 * Equality predicate ({@code =}) with an expression left operand.
 	 *
 	 * @param l the left operand (e.g. an aggregate {@link Expr}); must not be {@code null}
-	 * @param r the right operand (see {@link #ᆖ(Col, Object)}); {@code null} renders as literal {@code null}
+	 * @param r the right operand (see {@link #ㅤᆖㅤ(Col, Object)}); {@code null} renders as literal {@code null}
 	 * @return a leaf predicate
 	 */
-	public static Cond ᆖ(Object l, Object r) { return new Cond().ᆖ(l, r); }
+	public static Cond ㅤᆖㅤ(Object l, Object r) { return new Cond().ᆖ(l, r); }
 
 	/**
 	 * Less-than predicate ({@code <}) with a type-safe left column.
@@ -513,7 +539,7 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ᐸ(Col<T> l, Object r) { return new Cond().ᐸ(l, r); }    // <
+	public static <T> Cond ㅤᐸㅤ(Col<T> l, Object r) { return new Cond().ᐸ(l, r); }    // <
 
 	/**
 	 * Less-than predicate ({@code <}) with an expression left operand.
@@ -534,7 +560,7 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ᐳ(Col<T> l, Object r) { return new Cond().ᐳ(l, r); }    // >
+	public static <T> Cond ㅤᐳㅤ(Col<T> l, Object r) { return new Cond().ᐳ(l, r); }    // >
 
 	/**
 	 * Greater-than predicate ({@code >}) with an expression left operand.
@@ -543,7 +569,7 @@ public final class Linq {
 	 * @param r the right operand; must not be {@code null}
 	 * @return a leaf predicate
 	 */
-	public static Cond ᐳ(Object l, Object r) { return new Cond().ㅤᐳㅤ(l, r); }
+	public static Cond ㅤᐳㅤ(Object l, Object r) { return new Cond().ㅤᐳㅤ(l, r); }
 
 	/**
 	 * Less-than-or-equal predicate ({@code <=}) with a type-safe left column.
@@ -555,7 +581,7 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ᐸᆖ(Col<T> l, Object r) { return new Cond().ᐸᆖ(l, r); } // <=
+	public static <T> Cond ㅤᐸᆖㅤ(Col<T> l, Object r) { return new Cond().ᐸᆖ(l, r); } // <=
 
 	/**
 	 * Less-than-or-equal predicate ({@code <=}) with an expression left operand.
@@ -564,7 +590,7 @@ public final class Linq {
 	 * @param r the right operand; must not be {@code null}
 	 * @return a leaf predicate
 	 */
-	public static Cond ᐸᆖ(Object l, Object r) { return new Cond().ᐸᆖ(l, r); }
+	public static Cond ㅤᐸᆖㅤ(Object l, Object r) { return new Cond().ᐸᆖ(l, r); }
 
 	/**
 	 * Greater-than-or-equal predicate ({@code >=}) with a type-safe left column.
@@ -576,7 +602,7 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ᐳᆖ(Col<T> l, Object r) { return new Cond().ᐳᆖ(l, r); } // >=
+	public static <T> Cond ㅤᐳᆖㅤ(Col<T> l, Object r) { return new Cond().ᐳᆖ(l, r); } // >=
 
 	/**
 	 * Greater-than-or-equal predicate ({@code >=}) with an expression left operand.
@@ -585,7 +611,7 @@ public final class Linq {
 	 * @param r the right operand; must not be {@code null}
 	 * @return a leaf predicate
 	 */
-	public static Cond ᐳᆖ(Object l, Object r) { return new Cond().ᐳᆖ(l, r); }
+	public static Cond ㅤᐳᆖㅤ(Object l, Object r) { return new Cond().ᐳᆖ(l, r); }
 
 	/**
 	 * Not-equal predicate ({@code <>}) with a type-safe left column.
@@ -597,7 +623,7 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ᐸᐳ(Col<T> l, Object r) { return new Cond().ᐸᐳ(l, r); } // <>
+	public static <T> Cond ㅤᐸᐳㅤ(Col<T> l, Object r) { return new Cond().ᐸᐳ(l, r); } // <>
 
 	/**
 	 * Not-equal predicate ({@code <>}) with an expression left operand.
@@ -606,7 +632,114 @@ public final class Linq {
 	 * @param r the right operand; must not be {@code null}
 	 * @return a leaf predicate
 	 */
-	public static Cond ᐸᐳ(Object l, Object r) { return new Cond().ᐸᐳ(l, r); }
+	public static Cond ㅤᐸᐳㅤ(Object l, Object r) { return new Cond().ᐸᐳ(l, r); }
+
+	/**
+	 * Membership predicate ({@code in (...)}) with a type-safe left column.
+	 *
+	 * <p>Example: {@code IN(Product::categoryId, subquery)} &rarr; {@code p.categoryId in (select ...)}.</p>
+	 *
+	 * @param l   the left column getter (method reference); must not be {@code null}
+	 * @param r   the right side, typically a sub-query {@link Q}; must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @return a leaf predicate
+	 */
+	public static <T> Cond ㅤINㅤ(Col<T> l, Object r) { return new Cond().IN(l, r); }
+
+	/**
+	 * Membership predicate ({@code in (...)}) with an expression left operand.
+	 *
+	 * @param l the left operand; must not be {@code null}
+	 * @param r the right side (typically a sub-query); must not be {@code null}
+	 * @return a leaf predicate
+	 */
+	public static Cond ㅤINㅤ(Object l, Object r) { return new Cond().IN(l, r); }
+
+	/**
+	 * Pattern-match predicate ({@code like}) with a type-safe left column.
+	 *
+	 * <p>Example: {@code LIKE(Supplier::iban, param("p"))} &rarr; {@code iban like :p}.</p>
+	 *
+	 * @param l   the left column getter (method reference); must not be {@code null}
+	 * @param r   the pattern (literal/{@link #param(String)}); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @return a leaf predicate
+	 */
+	public static <T> Cond ㅤLIKEㅤ(Col<T> l, Object r) { return new Cond().LIKE(l, r); }
+
+	/**
+	 * Pattern-match predicate ({@code like}) with an expression left operand.
+	 *
+	 * @param l the left operand; must not be {@code null}
+	 * @param r the pattern; must not be {@code null}
+	 * @return a leaf predicate
+	 */
+	public static Cond ㅤLIKEㅤ(Object l, Object r) { return new Cond().LIKE(l, r); }
+
+	/**
+	 * Existence predicate ({@code exists (...)}).
+	 *
+	 * <p>Example: {@code EXISTS(SELECT(lit(1)).FROM(Order.class)...)} &rarr; {@code exists (select 1 ...)}.</p>
+	 *
+	 * @param subquery the sub-query (a {@link Q}); must not be {@code null}
+	 * @return a leaf predicate
+	 */
+	public static Cond ㅤEXISTSㅤ(Object subquery) { return new Cond().EXISTS(subquery); }
+
+	/**
+	 * Null-test predicate ({@code is null}), e.g. {@code ISㅤNULL(Employee::managerId)} &rarr; {@code e.managerId is null}.
+	 *
+	 * @param c   the column getter; must not be {@code null}
+	 * @param <T> the entity type owning the column
+	 * @return a leaf predicate
+	 */
+	public static <T> Cond ㅤISㅤNULLㅤ(Col<T> c) { return new Cond().ISㅤNULL(c); }
+
+	/**
+	 * Not-null-test predicate ({@code is not null}).
+	 *
+	 * @param c   the column getter; must not be {@code null}
+	 * @param <T> the entity type owning the column
+	 * @return a leaf predicate
+	 */
+	public static <T> Cond ㅤISㅤNOTㅤNULLㅤ(Col<T> c) { return new Cond().ISㅤNOTㅤNULL(c); }
+
+	/**
+	 * Empty-collection predicate ({@code is empty}).
+	 *
+	 * @param c   the collection-valued column getter; must not be {@code null}
+	 * @param <T> the entity type owning the column
+	 * @return a leaf predicate
+	 */
+	public static <T> Cond ㅤISㅤEMPTYㅤ(Col<T> c) { return new Cond().ISㅤEMPTY(c); }
+
+	/**
+	 * Non-empty-collection predicate ({@code is not empty}), e.g. {@code ISㅤNOTㅤEMPTY(Customer::orders)}
+	 * &rarr; {@code c.orders is not empty}.
+	 *
+	 * @param c   the collection-valued column getter; must not be {@code null}
+	 * @param <T> the entity type owning the column
+	 * @return a leaf predicate
+	 */
+	public static <T> Cond ㅤISㅤNOTㅤEMPTYㅤ(Col<T> c) { return new Cond().ISㅤNOTㅤEMPTY(c); }
+
+	/**
+	 * Non-empty-collection predicate ({@code is not empty}) with an expression operand.
+	 *
+	 * @param c the collection-valued expression; must not be {@code null}
+	 * @return a leaf predicate
+	 */
+	public static Cond ㅤISㅤNOTㅤEMPTYㅤ(Object c) { return new Cond().ISㅤNOTㅤEMPTY(c); }
+
+	/**
+	 * Collection-membership predicate ({@code value member of collection}), e.g.
+	 * {@code MEMBERㅤOF(param("product"), c(Customer::wishlist))} &rarr; {@code :product member of c.wishlist}.
+	 *
+	 * @param value      the element expression (literal/{@link #param(String)}); must not be {@code null}
+	 * @param collection the collection-valued expression; must not be {@code null}
+	 * @return a leaf predicate
+	 */
+	public static Cond ㅤMEMBERㅤOFㅤ(Object value, Object collection) { return new Cond().MEMBERㅤOF(value, collection); }
 
 	/**
 	 * Conjunction of predicates ({@code and}), parenthesized as a group.
@@ -630,7 +763,7 @@ public final class Linq {
 	 *              least one non-{@code null} element
 	 * @return a combined predicate
 	 */
-	public static Cond OR(Cond... parts) { return Cond.combine("or", parts); }
+	public static Cond ㅤORㅤ(Cond... parts) { return Cond.combine("or", parts); }
 
 	/**
 	 * Negation of a predicate ({@code not (...)}).
@@ -640,14 +773,14 @@ public final class Linq {
 	 * @param predicate the predicate to negate; must not be {@code null}
 	 * @return the negated predicate
 	 */
-	public static Cond NOT(Cond predicate) { return Cond.negate(predicate); }
+	public static Cond ㅤNOTㅤ(Cond predicate) { return Cond.negate(predicate); }
 
 	// ===== CASE expression =====
 
 	/**
 	 * Starts a {@code CASE WHEN ... THEN ... [ELSE ...] END} expression.
 	 *
-	 * <p>Example: {@code CASE().WHEN($ -> $.ᐳᆖ(Order::total, 1000)).THEN("GOLD").ELSE("BRONZE").END()}.</p>
+	 * <p>Example: {@code CASE().WHEN(ᐳᆖ(Order::total, 1000)).THEN("GOLD").ELSE("BRONZE").END()}.</p>
 	 *
 	 * @return a new {@link Case} builder
 	 */
