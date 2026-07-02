@@ -5,50 +5,74 @@
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
  */
-package linqava;
+package pro.peter_rader.linqava;
 
-import static linqava.Linq.AVG;
-import static linqava.Linq.CASE;
-import static linqava.Linq.COALESCE;
-import static linqava.Linq.COUNT;
-import static linqava.Linq.DISTINCTㅤ;
-import static linqava.Linq.MAX;
-import static linqava.Linq.NEW;
-import static linqava.Linq.NULLIF;
-import static linqava.Linq.ㅤPARTITIONㅤBYㅤ;
-import static linqava.Linq.RANK;
-import static linqava.Linq.ROW_NUMBER;
-import static linqava.Linq.SELECTㅤ;
-import static linqava.Linq.SIZE;
-import static linqava.Linq.SUM;
-import static linqava.Linq.ㅤTREATㅤ;
-import static linqava.Linq.WITH;
-import static linqava.Linq.WITHㅤRECURSIVE;
-import static linqava.Linq.col;
-import static linqava.Linq.lit;
-import static linqava.Linq.param;
-import static linqava.Linq.sub;
-import static linqava.Linq.ㅤᆖㅤ;
-import static linqava.Linq.ㅤANDㅤ;
-import static linqava.Linq.ㅤEXISTSㅤ;
-import static linqava.Linq.ㅤMEMBERㅤOFㅤ;
-import static linqava.Linq.ㅤORㅤ;
-import static linqava.Linq.ㅤᐳᆖㅤ;
-import static linqava.Linq.ㅤᐳㅤ;
-import static linqava.Linq.ㅤᐸᆖㅤ;
-import static linqava.Linq.ㅤᐸㅤ;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static pro.peter_rader.linqava.Linq.AVG;
+import static pro.peter_rader.linqava.Linq.CASE;
+import static pro.peter_rader.linqava.Linq.COALESCE;
+import static pro.peter_rader.linqava.Linq.COUNT;
+import static pro.peter_rader.linqava.Linq.DISTINCTㅤ;
+import static pro.peter_rader.linqava.Linq.MAX;
+import static pro.peter_rader.linqava.Linq.NEW;
+import static pro.peter_rader.linqava.Linq.NULLIF;
+import static pro.peter_rader.linqava.Linq.RANK;
+import static pro.peter_rader.linqava.Linq.ROW_NUMBER;
+import static pro.peter_rader.linqava.Linq.SELECTㅤ;
+import static pro.peter_rader.linqava.Linq.SIZE;
+import static pro.peter_rader.linqava.Linq.SUM;
+import static pro.peter_rader.linqava.Linq.WITH;
+import static pro.peter_rader.linqava.Linq.WITHㅤRECURSIVE;
+import static pro.peter_rader.linqava.Linq.col;
+import static pro.peter_rader.linqava.Linq.lit;
+import static pro.peter_rader.linqava.Linq.param;
+import static pro.peter_rader.linqava.Linq.sub;
+import static pro.peter_rader.linqava.Linq.ㅤANDㅤ;
+import static pro.peter_rader.linqava.Linq.ㅤEXISTSㅤ;
+import static pro.peter_rader.linqava.Linq.ㅤMEMBERㅤOFㅤ;
+import static pro.peter_rader.linqava.Linq.ㅤORㅤ;
+import static pro.peter_rader.linqava.Linq.ㅤPARTITIONㅤBYㅤ;
+import static pro.peter_rader.linqava.Linq.ㅤTREATㅤ;
+import static pro.peter_rader.linqava.Linq.ㅤᆖㅤ;
+import static pro.peter_rader.linqava.Linq.ㅤᐳᆖㅤ;
+import static pro.peter_rader.linqava.Linq.ㅤᐳㅤ;
+import static pro.peter_rader.linqava.Linq.ㅤᐸᆖㅤ;
+import static pro.peter_rader.linqava.Linq.ㅤᐸㅤ;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
+import pro.peter_rader.linqava.BankTransferPayment;
+import pro.peter_rader.linqava.Car;
+import pro.peter_rader.linqava.Category;
+import pro.peter_rader.linqava.Cond;
+import pro.peter_rader.linqava.CreditCardPayment;
+import pro.peter_rader.linqava.Customer;
+import pro.peter_rader.linqava.CustomerSummary;
+import pro.peter_rader.linqava.Driver;
+import pro.peter_rader.linqava.Employee;
+import pro.peter_rader.linqava.Linq;
+import pro.peter_rader.linqava.Order;
+import pro.peter_rader.linqava.OrderItem;
+import pro.peter_rader.linqava.Payment;
+import pro.peter_rader.linqava.Product;
+import pro.peter_rader.linqava.Q;
+import pro.peter_rader.linqava.SerialPlate;
+import pro.peter_rader.linqava.Supplier;
+import pro.peter_rader.linqava.User;
 
 /**
  * Verifies that the HQL produced by {@link Q#getHql()} is correct for each
@@ -68,8 +92,9 @@ import jakarta.persistence.TypedQuery;
  * {@code .AS(...)}/arithmetic chained onto it, or is a derived/alias-qualified
  * column with no getter, wrap it with {@code col(...)} — {@code col(User::id)},
  * {@code col("orderCount")}, {@code col("alias", "field")}.</li>
- * <li>The {@code AS} keyword aliases both fields ({@code col(User::id).AS("id")})
- * and tables ({@code FROM(User.class).AS("u")}).</li>
+ * <li>The {@code AS} keyword aliases both fields
+ * ({@code col(User::id).AS("id")}) and tables
+ * ({@code FROM(User.class).AS("u")}).</li>
  * <li>{@code WHERE}/{@code ON}/{@code HAVING} start from a bare column or
  * expression, followed by an operator supplying the right-hand value, e.g.
  * {@code WHERE(User::Name).ᆖ("John")}; chain further predicates with
@@ -137,8 +162,8 @@ public class QueryTest {
 				SELECTㅤ(col(Employee::id).ㅤAS("id"), col(Employee::managerId).ㅤAS("managerId"), lit(0).ㅤAS("depth"))
 						.ㅤFROMㅤ(Employee.class).ㅤAS("e").ㅤWHEREㅤ(Employee::managerId).ISㅤNULL()
 						.UNIONㅤALL(SELECTㅤ(col(Employee::id).ㅤAS("id"), col(Employee::managerId).ㅤAS("managerId"),
-								col("h", "depth").ᐩ(1).ㅤAS("depth")).ㅤFROMㅤ(Employee.class).ㅤAS("e").JOIN("empHierarchy")
-								.ㅤAS("h").ㅤONㅤ(Employee::managerId).ㅤᆖㅤ(col("h", "id"))))
+								col("h", "depth").ᐩ(1).ㅤAS("depth")).ㅤFROMㅤ(Employee.class).ㅤAS("e")
+								.JOIN("empHierarchy").ㅤAS("h").ㅤONㅤ(Employee::managerId).ㅤᆖㅤ(col("h", "id"))))
 				.SELECTㅤ(col("h", "id"), col("h", "depth")).FROM("empHierarchy").ㅤAS("h")
 				.ㅤORDERㅤBYㅤ(col("h", "depth"), col("h", "id"));
 		assertEquals("with recursive empHierarchy as (select e.id as id, e.managerId as managerId, 0 as depth "
@@ -244,8 +269,8 @@ public class QueryTest {
 	// FROM Supplier s WHERE s.preferred = true
 	@Test
 	public void testUnionAll() {
-		Q<Object> q = SELECTㅤ(col(User::email).ㅤAS("contact")).ㅤFROMㅤ(User.class).ㅤAS("u").ㅤWHEREㅤ(User::active).ㅤᆖㅤ(true)
-				.UNIONㅤALL(SELECTㅤ(col(Supplier::email).ㅤAS("contact")).ㅤFROMㅤ(Supplier.class).ㅤAS("s")
+		Q<Object> q = SELECTㅤ(col(User::email).ㅤAS("contact")).ㅤFROMㅤ(User.class).ㅤAS("u").ㅤWHEREㅤ(User::active)
+				.ㅤᆖㅤ(true).UNIONㅤALL(SELECTㅤ(col(Supplier::email).ㅤAS("contact")).ㅤFROMㅤ(Supplier.class).ㅤAS("s")
 						.ㅤWHEREㅤ(Supplier::preferred).ㅤᆖㅤ(true));
 		assertEquals("select u.email as contact from User u where u.active = true union all "
 				+ "select s.email as contact from Supplier s where s.preferred = true", q.getHql());
@@ -258,7 +283,7 @@ public class QueryTest {
 		Q<Object> q = SELECTㅤ(NEW(CustomerSummary.class, Customer::id, col(Customer::name), COUNT(col("o", Order::id))))
 				.ㅤFROMㅤ(Customer.class).ㅤAS("c").LEFTㅤJOIN(Customer::orders).ㅤAS("o")
 				.GROUPㅤBY(Customer::id, Customer::name);
-		assertEquals("select new linqava.CustomerSummary(c.id, c.name, count(o.id)) from Customer c "
+		assertEquals("select new pro.peter_rader.linqava.CustomerSummary(c.id, c.name, count(o.id)) from Customer c "
 				+ "left join c.orders o group by c.id, c.name", q.getHql());
 	}
 
@@ -291,7 +316,8 @@ public class QueryTest {
 	@Test
 	public void testCteWithWindowFunction() {
 		Q<Object> q = WITH("rankedOrders",
-				SELECTㅤ(col(Order::id).ㅤAS("id"), col(Order::customerId).ㅤAS("customerId"), col(Order::total).ㅤAS("total"),
+				SELECTㅤ(col(Order::id).ㅤAS("id"), col(Order::customerId).ㅤAS("customerId"),
+						col(Order::total).ㅤAS("total"),
 						RANK().OVER(ㅤPARTITIONㅤBYㅤ(Order::customerId).ORDERㅤBY(Order::total).DESC()).ㅤAS("rnk"))
 						.ㅤFROMㅤ(Order.class).ㅤAS("o"))
 				.SELECTㅤ(col("r", "customerId"), col("r", "id"), col("r", "total")).FROM("rankedOrders").ㅤAS("r")
@@ -349,10 +375,14 @@ public class QueryTest {
 		List<Order> expected = Arrays.asList(new Order(), new Order());
 		EntityManager em = fakeEntityManager(capturedHql, expected);
 
-		List<Order> result = q.via(em);
-
+		Iterable<Order> result = q.via(em);
 		assertEquals("select o from Order o", capturedHql[0]);
-		assertEquals(2, result.size());
+		Iterator<Order> iterator = result.iterator();
+		assertTrue(iterator.hasNext());
+		iterator.next();
+		assertTrue(iterator.hasNext());
+		iterator.next();
+		assertFalse(iterator.hasNext());
 	}
 
 	// via(EntityManager) also works for SELECT DISTINCT of a single entity.
@@ -362,10 +392,13 @@ public class QueryTest {
 		String[] capturedHql = new String[1];
 		EntityManager em = fakeEntityManager(capturedHql, Collections.singletonList(new Customer()));
 
-		List<Customer> result = q.via(em);
+		Iterable<Customer> result = q.via(em);
 
 		assertEquals("select distinct c from Customer c", capturedHql[0]);
-		assertEquals(1, result.size());
+		Iterator<Customer> iterator = result.iterator();
+		assertTrue(iterator.hasNext());
+		iterator.next();
+		assertFalse(iterator.hasNext());
 	}
 
 	// via(EntityManager) rejects scalar/tuple projections.
@@ -373,6 +406,25 @@ public class QueryTest {
 	public void testViaRejectsProjection() {
 		Q<Object> q = SELECTㅤ(Order::id).ㅤFROMㅤ(Order.class).ㅤAS("o");
 		q.via(fakeEntityManager(new String[1], Collections.emptyList()));
+	}
+
+	// via(EntityManager) binds bare literal values as invented :__pN parameters and
+	// leaves param(...) placeholders untouched; getHql() keeps inlining literals as
+	// before.
+	@Test
+	public void testViaBindsLiteralValuesAsParameters() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤWHEREㅤ(Order::status).ㅤᆖㅤ("PAID")
+				.ㅤANDㅤ(Order::total).ㅤᐳㅤ(param("minTotal"));
+		assertEquals("select o from Order o where o.status = 'PAID' and o.total > :minTotal", q.getHql());
+
+		String[] capturedHql = new String[1];
+		Map<String, Object> capturedParams = new HashMap<>();
+		EntityManager em = fakeEntityManager(capturedHql, Collections.emptyList(), capturedParams);
+
+		q.via(em);
+
+		assertEquals("select o from Order o where o.status = :__p0 and o.total > :minTotal", capturedHql[0]);
+		assertEquals(Collections.singletonMap("__p0", "PAID"), capturedParams);
 	}
 
 	// SELECT c FROM Car c WHERE c.driver.id > 0 AND c.plate.id > 0
@@ -400,9 +452,27 @@ public class QueryTest {
 	 * {@code createQuery} and returns a fixed list.
 	 */
 	private static EntityManager fakeEntityManager(String[] capturedHql, List<?> resultList) {
+		return fakeEntityManager(capturedHql, resultList, new HashMap<>());
+	}
+
+	/**
+	 * Like {@link #fakeEntityManager(String[], List)}, but also records every
+	 * {@code setParameter(name, value)} call made on the returned query into
+	 * {@code capturedParams}.
+	 */
+	private static EntityManager fakeEntityManager(String[] capturedHql, List<?> resultList,
+			Map<String, Object> capturedParams) {
 		ClassLoader cl = QueryTest.class.getClassLoader();
-		InvocationHandler queryHandler = (proxy, method, args) -> method.getName().equals("getResultList") ? resultList
-				: proxy;
+		InvocationHandler queryHandler = (proxy, method, args) -> {
+			if (method.getName().equals("getResultList")) {
+				return resultList;
+			}
+			if (method.getName().equals("setParameter") && args != null && args.length == 2
+					&& args[0] instanceof String) {
+				capturedParams.put((String) args[0], args[1]);
+			}
+			return proxy;
+		};
 		InvocationHandler emHandler = (proxy, method, args) -> {
 			if (method.getName().equals("createQuery") && args != null && args.length == 2
 					&& args[0] instanceof String) {

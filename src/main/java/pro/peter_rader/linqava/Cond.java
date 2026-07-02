@@ -5,7 +5,7 @@
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
  */
-package linqava;
+package pro.peter_rader.linqava;
 
 /**
  * A predicate (condition) tree. Comparison operators are methods named with Unicode glyphs that are

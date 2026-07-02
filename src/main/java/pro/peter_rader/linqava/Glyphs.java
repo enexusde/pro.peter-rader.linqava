@@ -5,7 +5,7 @@
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
  */
-package linqava;
+package pro.peter_rader.linqava;
 
 /**
  * Reference of the Unicode glyphs linqava uses to express SQL operators as Java method names.

@@ -6,7 +6,7 @@
  * Queries may not be Strings! (c) 2026
  */
 module pro.peter_rader.linqava {
-	exports linqava;
+	exports pro.peter_rader.linqava;
 
 	requires jakarta.persistence;
 }

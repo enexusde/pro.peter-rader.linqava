@@ -5,13 +5,15 @@
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
  */
-package linqava;
+package pro.peter_rader.linqava;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
 
 /**
  * A linqava query/statement — the builder reached <em>after</em> {@code FROM}. Call {@link #getHql()}
@@ -471,7 +473,20 @@ public final class Q<E> {
 	 *         fluent entry points, so this instance is always renderable.)
 	 */
 	public String getHql() {
-		RenderCtx ctx = renderCtx();
+		return buildHql(renderCtx(null));
+	}
+
+	/**
+	 * Renders this statement using the given parameter collector — {@code null} inlines literals
+	 * exactly like {@link #getHql()}; a non-{@code null} collector (shared across the whole query
+	 * tree, see {@link Q#via}) turns every literal encountered while rendering into a {@code :name}
+	 * bind parameter instead.
+	 */
+	String hqlFor(ParamCollector collector) {
+		return buildHql(renderCtx(collector));
+	}
+
+	private String buildHql(RenderCtx ctx) {
 		StringBuilder sb = new StringBuilder();
 
 		if (!ctes.isEmpty()) {
@@ -483,7 +498,7 @@ public final class Q<E> {
 				if (i > 0) {
 					sb.append(", ");
 				}
-				sb.append(ctes.get(i).name).append(" as (").append(ctes.get(i).definition.getHql()).append(")");
+				sb.append(ctes.get(i).name).append(" as (").append(ctes.get(i).definition.hqlFor(ctx.collector())).append(")");
 			}
 			sb.append(" ");
 		}
@@ -511,7 +526,7 @@ public final class Q<E> {
 
 		String hql = sb.toString();
 		if (unionAll != null) {
-			hql = hql + " union all " + unionAll.getHql();
+			hql = hql + " union all " + unionAll.hqlFor(ctx.collector());
 		}
 		return hql;
 	}
@@ -529,23 +544,35 @@ public final class Q<E> {
 	 * List<Order> orders = q.via(entityManager);
 	 * }</pre>
 	 *
+	 * <p>Unlike {@link #getHql()}, every literal value in the query (anything not wrapped in
+	 * {@link Linq#param(String)}) is rendered as an invented {@code :name} bind parameter and passed
+	 * to the {@link TypedQuery} via {@code setParameter} instead of being inlined into the HQL text —
+	 * this applies throughout the whole query tree, including CTEs, {@code UNION ALL} parts and
+	 * sub-queries. Values passed via {@link Linq#param(String)} are left untouched; bind their values
+	 * yourself with {@code em.createQuery(getHql(), ...).setParameter(name, value)} if needed.</p>
+	 *
 	 * @param em the JPA entity manager used to create and run the query; must not be {@code null}
 	 * @return the (possibly empty) list of entities; never {@code null}
 	 * @throws NullPointerException  if {@code em} is {@code null}
 	 * @throws IllegalStateException if the query does not select a single entity (e.g. it is a
 	 *                               scalar/tuple projection); use {@code em.createQuery(getHql())} for those
 	 */
-	public List<E> via(EntityManager em) {
+	public Iterable<E> via(EntityManager em) {
 		Objects.requireNonNull(em, "em");
 		if (select.size() != 1 || !(select.get(0) instanceof EntityExpr) || entityType == null) {
 			throw new IllegalStateException(
 					"via(EntityManager) requires a query selecting a single entity, "
 							+ "e.g. SELECT(entity(Order.class)); for projections use em.createQuery(getHql())");
 		}
-		return em.createQuery(getHql(), entityType).getResultList();
+		ParamCollector collector = new ParamCollector();
+		TypedQuery<E> tq = em.createQuery(hqlFor(collector), entityType);
+		for (Map.Entry<String, Object> e : collector.params().entrySet()) {
+			tq.setParameter(e.getKey(), e.getValue());
+		}
+		return tq.getResultList();
 	}
 
-	private RenderCtx renderCtx() {
+	private RenderCtx renderCtx(ParamCollector collector) {
 		List<String[]> sources = new ArrayList<>();
 		if (from != null && from.isClass && from.alias != null) {
 			sources.add(new String[] { from.alias, from.entity });
@@ -555,7 +582,7 @@ public final class Q<E> {
 				sources.add(new String[] { j.target.alias, j.target.entity });
 			}
 		}
-		return new RenderCtx(sources);
+		return new RenderCtx(sources, collector);
 	}
 
 	private static String renderSrc(Src s, RenderCtx ctx) {

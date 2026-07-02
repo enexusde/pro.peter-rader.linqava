@@ -5,7 +5,7 @@
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
  */
-package linqava;
+package pro.peter_rader.linqava;
 
 /**
  * A query expression node (column, literal, function call, arithmetic result, window or alias).
@@ -147,19 +147,44 @@ public abstract class Expr {
 	}
 
 	/** Coerce an arbitrary value into an expression: Expr as-is, sub-query in parentheses,
-	 *  String as an HQL string literal, everything else via {@code toString()}. */
+	 *  everything else a {@link LiteralExpr}. */
 	static Expr val(Object o) {
 		if (o instanceof Expr) {
 			return (Expr) o;
 		}
 		if (o instanceof Q) {
 			Q q = (Q) o;
-			return of(c -> "(" + q.getHql() + ")");
+			return of(c -> "(" + q.hqlFor(c.collector()) + ")");
 		}
-		if (o instanceof String) {
-			return of(c -> "'" + o + "'");
+		return new LiteralExpr(o);
+	}
+
+	/**
+	 * A literal value. Renders as a {@code :name} bind parameter when the active {@link RenderCtx}
+	 * carries a {@link ParamCollector} (i.e. while {@link Q#via} builds its parameterized query) and
+	 * the value isn't {@code null}; otherwise renders inline exactly like {@code getHql()} always has
+	 * (quoted for {@link String}, verbatim via {@link String#valueOf(Object)} otherwise — {@code null}
+	 * always renders as the SQL {@code null} literal).
+	 */
+	static final class LiteralExpr extends Expr {
+
+		private final Object value;
+
+		LiteralExpr(Object value) {
+			this.value = value;
 		}
-		return of(c -> String.valueOf(o));
+
+		@Override
+		String render(RenderCtx ctx) {
+			ParamCollector collector = ctx.collector();
+			if (value != null && collector != null) {
+				return ":" + collector.next(value);
+			}
+			if (value instanceof String) {
+				return "'" + value + "'";
+			}
+			return String.valueOf(value);
+		}
 	}
 
 	static String list(RenderCtx ctx, Object[] items) {

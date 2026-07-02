@@ -5,7 +5,7 @@
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
  */
-package linqava;
+package pro.peter_rader.linqava;
 
 /**
  * The phase right after {@code ORDER BY(alias, field)}: the ordering column has been named; follow
