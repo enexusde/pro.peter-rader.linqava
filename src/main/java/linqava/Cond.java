@@ -20,7 +20,7 @@ import java.util.function.Function;
  * or {@link Linq#param parameter}).</p>
  *
  * <p>Predicates accumulate: each call appends its predicate to the context joined by the pending
- * connector (default {@code and}; switch with {@link #AND()} / {@link #OR()}). Example:</p>
+ * connector (default {@code and}; switch with {@link #ㅤANDㅤ()} / {@link #OR()}). Example:</p>
  * <pre>{@code
  * $ -> $.ᆖ(Order::status, "PAID").AND().ᐳ(Order::total, 100)
  * // o.status = 'PAID' and o.total > 100
@@ -111,7 +111,7 @@ public final class Cond {
 	 * @param r the right operand; must not be {@code null}
 	 * @return this context, for chaining
 	 */
-	public Cond ᐳ(Object l, Object r) { return add(cmp(Expr.val(l), ">", r)); }
+	public Cond ㅤᐳㅤ(Object l, Object r) { return add(cmp(Expr.val(l), ">", r)); }
 
 	/**
 	 * Less-than-or-equal ({@code <=}), e.g. {@code $.ᐸᆖ(Order::discount, 50)} &rarr; {@code o.discount <= 50}.
@@ -290,7 +290,7 @@ public final class Cond {
 	 *
 	 * @return this context, for chaining
 	 */
-	public Cond AND() { pending = "and"; return this; }
+	public Cond ㅤANDㅤ() { pending = "and"; return this; }
 
 	/**
 	 * Sets the connector for the next predicate to {@code or}.
@@ -302,7 +302,7 @@ public final class Cond {
 	/**
 	 * Appends a parenthesized sub-group joined with {@code and}.
 	 *
-	 * <p>For deeply nested boolean trees prefer the flat {@link Linq#AND(Cond...)} / {@link Linq#OR(Cond...)}.</p>
+	 * <p>For deeply nested boolean trees prefer the flat {@link Linq#ㅤANDㅤ(Cond...)} / {@link Linq#OR(Cond...)}.</p>
 	 *
 	 * @param group builds the sub-condition from a fresh {@link Cond}; must not be {@code null}
 	 * @return this context, for chaining

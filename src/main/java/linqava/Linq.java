@@ -41,9 +41,9 @@ public final class Linq {
 	 *             aggregates such as {@link #COUNT(Object)}, or {@link #entity(Class)}. Must not be
 	 *             {@code null} and should not contain {@code null} elements (a {@code null} element
 	 *             renders as the literal text {@code null}). May be empty.
-	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#FROM(Class) FROM} next
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static SelectStep SELECT(Object... cols) { return new SelectStep(new Q().addSelect(cols)); }
+	public static SelectStep SELECTㅤ(Object... cols) { return new SelectStep(new Q().addSelect(cols)); }
 
 	/**
 	 * Starts a {@code SELECT} whose first column is a bare getter reference, e.g.
@@ -52,9 +52,9 @@ public final class Linq {
 	 * @param first the first column getter (method reference); must not be {@code null}
 	 * @param rest  the remaining columns/expressions, in order; must not be {@code null}, may be empty
 	 * @param <A>   the entity type owning the first column
-	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#FROM(Class) FROM} next
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <A> SelectStep SELECT(Col<A> first, Object... rest) { return new SelectStep(new Q().addSelect(first, rest)); }
+	public static <A> SelectStep SELECTㅤ(Col<A> first, Object... rest) { return new SelectStep(new Q().addSelect(first, rest)); }
 
 	/**
 	 * Starts a {@code SELECT} of a whole entity — shorthand for {@code SELECT(entity(type))}.
@@ -63,9 +63,9 @@ public final class Linq {
 	 * Such single-entity queries can be run with {@link Q#via(jakarta.persistence.EntityManager)}.</p>
 	 *
 	 * @param entityType the selected entity class; must not be {@code null}, e.g. {@code Order.class}
-	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#FROM(Class) FROM} next
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static SelectStep SELECT(Class<?> entityType) { return new SelectStep(new Q().addSelect(entity(entityType))); }
+	public static SelectStep SELECTㅤ(Class<?> entityType) { return new SelectStep(new Q().addSelect(entity(entityType))); }
 
 	/**
 	 * Starts a query with a common table expression ({@code WITH name AS (definition)}).
@@ -159,7 +159,7 @@ public final class Linq {
 
 	/**
 	 * The whole entity, rendered as its alias. Package-private: users select a whole entity via the
-	 * dedicated overloads {@link #SELECT(Class)}, {@link #DISTINCT(Class)} and {@link #TREAT(Class, Class)}
+	 * dedicated overloads {@link #SELECTㅤ(Class)}, {@link #DISTINCTㅤ(Class)} and {@link #TREAT(Class, Class)}
 	 * instead of calling this directly.
 	 */
 	static Expr entity(Class<?> type) {
@@ -412,7 +412,7 @@ public final class Linq {
 	 * @param entityType the distinct entity class; must not be {@code null}, e.g. {@code Customer.class}
 	 * @return the distinct entity projection as an {@link Expr}
 	 */
-	public static Expr DISTINCT(Class<?> entityType) {
+	public static Expr DISTINCTㅤ(Class<?> entityType) {
 		return DISTINCT(entity(entityType));
 	}
 
@@ -433,9 +433,9 @@ public final class Linq {
 
 	/**
 	 * A {@code treat(expr as Subtype)} down-cast for polymorphic associations; follow with
-	 * {@link Expr#dot(Col)} to access a subtype field.
+	 * {@link Expr#ᐧ(Col)} to access a subtype field.
 	 *
-	 * <p>Example: {@code TREAT(expr, CreditCardPayment.class).dot(CreditCardPayment::cardType)}
+	 * <p>Example: {@code TREAT(expr, CreditCardPayment.class).ᐧ(CreditCardPayment::cardType)}
 	 * &rarr; {@code treat(... as CreditCardPayment).cardType}.</p>
 	 *
 	 * @param expr the expression to cast; must not be {@code null}
@@ -449,9 +449,9 @@ public final class Linq {
 
 	/**
 	 * A {@code treat(rootEntity as Subtype)} down-cast — shorthand for {@code TREAT(entity(rootType), subtype)};
-	 * follow with {@link Expr#dot(Col)} to access a subtype field.
+	 * follow with {@link Expr#ᐧ(Col)} to access a subtype field.
 	 *
-	 * <p>Example: {@code TREAT(Payment.class, CreditCardPayment.class).dot(CreditCardPayment::cardType)}
+	 * <p>Example: {@code TREAT(Payment.class, CreditCardPayment.class).ᐧ(CreditCardPayment::cardType)}
 	 * &rarr; {@code treat(p as CreditCardPayment).cardType}.</p>
 	 *
 	 * @param rootType the entity being cast (its alias is emitted); must not be {@code null}, e.g. {@code Payment.class}
@@ -490,7 +490,7 @@ public final class Linq {
 	 *            or a literal. To test for null use {@link Cond#IS‿NULL(Col)} — passing {@code null}
 	 *            here renders the literal text {@code null}.
 	 * @param <T> the entity type owning the left column
-	 * @return a leaf predicate; combine with {@link #AND(Cond...)} / {@link #OR(Cond...)}
+	 * @return a leaf predicate; combine with {@link #ㅤANDㅤ(Cond...)} / {@link #OR(Cond...)}
 	 */
 	public static <T> Cond ᆖ(Col<T> l, Object r) { return new Cond().ᆖ(l, r); }   // =
 
@@ -543,7 +543,7 @@ public final class Linq {
 	 * @param r the right operand; must not be {@code null}
 	 * @return a leaf predicate
 	 */
-	public static Cond ᐳ(Object l, Object r) { return new Cond().ᐳ(l, r); }
+	public static Cond ᐳ(Object l, Object r) { return new Cond().ㅤᐳㅤ(l, r); }
 
 	/**
 	 * Less-than-or-equal predicate ({@code <=}) with a type-safe left column.
@@ -618,7 +618,7 @@ public final class Linq {
 	 *              least one non-{@code null} element
 	 * @return a combined predicate
 	 */
-	public static Cond AND(Cond... parts) { return Cond.combine("and", parts); }
+	public static Cond ㅤANDㅤ(Cond... parts) { return Cond.combine("and", parts); }
 
 	/**
 	 * Disjunction of predicates ({@code or}), parenthesized as a group.

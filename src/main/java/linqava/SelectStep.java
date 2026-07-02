@@ -34,14 +34,14 @@ public final class SelectStep {
 	}
 
 	/**
-	 * Sets the root entity ({@code from Entity}). Declare an alias with {@link Q#AS(String)} right after.
+	 * Sets the root entity ({@code from Entity}). Declare an alias with {@link Q#ㅤASㅤ(String)} right after.
 	 *
 	 * <p>Example: {@code FROM(User.class).AS("u")} &rarr; {@code from User u}.</p>
 	 *
 	 * @param root the root entity class; must not be {@code null}
 	 * @return the query builder for the remaining clauses
 	 */
-	public Q FROM(Class<?> root) {
+	public Q ㅤFROMㅤ(Class<?> root) {
 		return q.setFrom(root);
 	}
 

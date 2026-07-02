@@ -47,9 +47,9 @@ public final class WithStep {
 	 * Starts the main query's projection ({@code select ...}).
 	 *
 	 * @param cols the projected columns/expressions, in order; must not be {@code null}, may be empty
-	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#FROM(Class) FROM} next
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public SelectStep SELECT(Object... cols) {
+	public SelectStep SELECTㅤ(Object... cols) {
 		q.addSelect(cols);
 		return new SelectStep(q);
 	}
@@ -60,9 +60,9 @@ public final class WithStep {
 	 * @param first the first column getter (method reference); must not be {@code null}
 	 * @param rest  the remaining columns/expressions, in order; must not be {@code null}, may be empty
 	 * @param <A>   the entity type owning the first column
-	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#FROM(Class) FROM} next
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public <A> SelectStep SELECT(Col<A> first, Object... rest) {
+	public <A> SelectStep SELECTㅤ(Col<A> first, Object... rest) {
 		q.addSelect(first, rest);
 		return new SelectStep(q);
 	}
@@ -71,7 +71,7 @@ public final class WithStep {
 	 * Starts the main query as a whole-entity selection — shorthand for {@code SELECT(entity(type))}.
 	 *
 	 * @param entityType the selected entity class; must not be {@code null}
-	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#FROM(Class) FROM} next
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public SelectStep SELECT(Class<?> entityType) {
 		q.addSelect(Linq.entity(entityType));

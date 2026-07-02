@@ -75,7 +75,7 @@ public abstract class Expr {
 	 * @param alias the alias name; must not be {@code null} or blank
 	 * @return a new expression
 	 */
-	public Expr AS(String alias) { Expr s = this; return of(c -> s.render(c) + " as " + alias); }
+	public Expr ㅤASㅤ(String alias) { Expr s = this; return of(c -> s.render(c) + " as " + alias); }
 
 	/**
 	 * Window clause, e.g. {@code ROW_NUMBER().OVER(PARTITION‿BY(...))} &rarr; {@code row_number() over (...)}.
@@ -105,13 +105,13 @@ public abstract class Expr {
 
 	/**
 	 * Member access on a {@code TREAT(...)} result, e.g.
-	 * {@code TREAT(p, CreditCardPayment.class).dot(CreditCardPayment::cardType)} &rarr; {@code treat(...).cardType}.
+	 * {@code TREAT(p, CreditCardPayment.class).ᐧ(CreditCardPayment::cardType)} &rarr; {@code treat(...).cardType}.
 	 *
 	 * @param getter the subtype field getter (method reference); must not be {@code null}
 	 * @param <T>    the subtype owning the getter
 	 * @return a new expression
 	 */
-	public <T> Expr dot(Col<T> getter) {
+	public <T> Expr ᐧ(Col<T> getter) {
 		Expr s = this;
 		String prop = Names.property(getter);
 		return of(c -> s.render(c) + "." + prop);

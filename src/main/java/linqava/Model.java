@@ -17,68 +17,180 @@ import java.util.List;
  */
 
 class User {
-	int id() { return 0; }
-	String Name() { return null; }
-	String name() { return null; }
-	boolean active() { return false; }
-	String email() { return null; }
+	int id() {
+		return 0;
+	}
+
+	String Name() {
+		return null;
+	}
+
+	String name() {
+		return null;
+	}
+
+	boolean active() {
+		return false;
+	}
+
+	String email() {
+		return null;
+	}
 }
 
 class Order {
-	int id() { return 0; }
-	int customerId() { return 0; }
-	double total() { return 0; }
-	Instant createdAt() { return null; }
-	String status() { return null; }
-	double discount() { return 0; }
+	int id() {
+		return 0;
+	}
+
+	int customerId() {
+		return 0;
+	}
+
+	double total() {
+		return 0;
+	}
+
+	Instant createdAt() {
+		return null;
+	}
+
+	String status() {
+		return null;
+	}
+
+	double discount() {
+		return 0;
+	}
 }
 
 class Customer {
-	int id() { return 0; }
-	String name() { return null; }
-	String country() { return null; }
-	List<Order> orders() { return null; }
-	List<Product> wishlist() { return null; }
+	int id() {
+		return 0;
+	}
+
+	String name() {
+		return null;
+	}
+
+	String country() {
+		return null;
+	}
+
+	List<Order> orders() {
+		return null;
+	}
+
+	List<Product> wishlist() {
+		return null;
+	}
 }
 
 class Product {
-	int id() { return 0; }
-	int categoryId() { return 0; }
-	double price() { return 0; }
-	String title() { return null; }
+	int id() {
+		return 0;
+	}
+
+	int categoryId() {
+		return 0;
+	}
+
+	double price() {
+		return 0;
+	}
+
+	String title() {
+		return null;
+	}
 }
 
 class Category {
-	int id() { return 0; }
-	int parentId() { return 0; }
+	int id() {
+		return 0;
+	}
+
+	int parentId() {
+		return 0;
+	}
 }
 
 class Employee {
-	int id() { return 0; }
-	Integer managerId() { return null; }
+	int id() {
+		return 0;
+	}
+
+	Integer managerId() {
+		return null;
+	}
 }
 
 class OrderItem {
-	int orderId() { return 0; }
-	int productId() { return 0; }
+	int orderId() {
+		return 0;
+	}
+
+	int productId() {
+		return 0;
+	}
 }
 
 class Supplier {
-	int id() { return 0; }
-	String email() { return null; }
-	boolean preferred() { return false; }
+	int id() {
+		return 0;
+	}
+
+	String email() {
+		return null;
+	}
+
+	boolean preferred() {
+		return false;
+	}
 }
 
 class Payment {
-	int id() { return 0; }
+	int id() {
+		return 0;
+	}
 }
 
 class CreditCardPayment extends Payment {
-	String cardType() { return null; }
+	String cardType() {
+		return null;
+	}
 }
 
 class BankTransferPayment extends Payment {
-	String iban() { return null; }
+	String iban() {
+		return null;
+	}
+}
+
+class Driver {
+	int id() {
+		return 0;
+	}
+}
+
+class Car {
+	int id() {
+		return 0;
+	}
+
+	Driver driver() {
+		return null;
+	};
+
+	SerialPlate plate() {
+		return null;
+	}
+
+}
+
+class SerialPlate {
+	int id() {
+		return 0;
+	}
 }
 
 class CustomerSummary {
