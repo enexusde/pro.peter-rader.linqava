@@ -385,6 +385,136 @@ public class QueryTest {
 		assertFalse(iterator.hasNext());
 	}
 
+	// via(EntityManager, Supplier) returns the existing result as-is and does NOT
+	// invoke the fallback when the query already finds a match.
+	@Test
+	public void testViaWithFallbackReturnsExistingResultWithoutPersisting() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Order existing = new Order();
+		List<Object> persisted = new java.util.ArrayList<>();
+		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.singletonList(existing), persisted);
+
+		boolean[] fallbackCalled = { false };
+		Iterable<Order> result = q.via(em, () -> {
+			fallbackCalled[0] = true;
+			return new Order();
+		});
+
+		assertFalse(fallbackCalled[0]);
+		assertTrue(persisted.isEmpty());
+		Iterator<Order> iterator = result.iterator();
+		assertTrue(iterator.hasNext());
+		assertEquals(existing, iterator.next());
+		assertFalse(iterator.hasNext());
+	}
+
+	// via(EntityManager, Supplier) invokes the fallback and persists it when the
+	// query finds no match.
+	@Test
+	public void testViaWithFallbackPersistsWhenEmpty() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Order created = new Order();
+		List<Object> persisted = new java.util.ArrayList<>();
+		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.emptyList(), persisted);
+
+		Iterable<Order> result = q.via(em, () -> created);
+
+		assertEquals(Collections.singletonList(created), persisted);
+		Iterator<Order> iterator = result.iterator();
+		assertTrue(iterator.hasNext());
+		assertEquals(created, iterator.next());
+		assertFalse(iterator.hasNext());
+	}
+
+	// first(EntityManager) returns only the first entity, not the whole list.
+	@Test
+	public void testFirstReturnsFirstEntity() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Order first = new Order();
+		Order second = new Order();
+		EntityManager em = fakeEntityManager(new String[1], Arrays.asList(first, second));
+
+		Order result = q.first(em);
+
+		assertEquals(first, result);
+	}
+
+	// first(EntityManager) throws when the query finds no match.
+	@Test(expected = java.util.NoSuchElementException.class)
+	public void testFirstThrowsWhenEmpty() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		EntityManager em = fakeEntityManager(new String[1], Collections.emptyList());
+
+		q.first(em);
+	}
+
+	// first(EntityManager, Supplier) returns the existing first result and does
+	// NOT invoke the fallback when the query already finds a match.
+	@Test
+	public void testFirstWithSupplierFallbackReturnsExistingResultWithoutPersisting() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Order existing = new Order();
+		List<Object> persisted = new java.util.ArrayList<>();
+		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.singletonList(existing), persisted);
+
+		boolean[] fallbackCalled = { false };
+		Order result = q.first(em, () -> {
+			fallbackCalled[0] = true;
+			return new Order();
+		});
+
+		assertEquals(existing, result);
+		assertFalse(fallbackCalled[0]);
+		assertTrue(persisted.isEmpty());
+	}
+
+	// first(EntityManager, Supplier) invokes the fallback, persists it and returns
+	// it when the query finds no match.
+	@Test
+	public void testFirstWithSupplierFallbackPersistsWhenEmpty() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Order created = new Order();
+		List<Object> persisted = new java.util.ArrayList<>();
+		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.emptyList(), persisted);
+
+		Order result = q.first(em, () -> created);
+
+		assertEquals(created, result);
+		assertEquals(Collections.singletonList(created), persisted);
+	}
+
+	// first(EntityManager, Consumer) returns the existing first result and does
+	// NOT invoke the fallback fill when the query already finds a match.
+	@Test
+	public void testFirstWithConsumerFallbackReturnsExistingResultWithoutPersisting() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Order existing = new Order();
+		List<Object> persisted = new java.util.ArrayList<>();
+		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.singletonList(existing), persisted);
+		boolean[] fillCalled = { false };
+
+		Order result = q.first(em, o -> fillCalled[0] = true);
+
+		assertEquals(existing, result);
+		assertFalse(fillCalled[0]);
+		assertTrue(persisted.isEmpty());
+	}
+
+	// first(EntityManager, Consumer) fills, persists and returns a fresh instance
+	// when the query finds no match.
+	@Test
+	public void testFirstWithConsumerFallbackPersistsWhenEmpty() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		List<Object> persisted = new java.util.ArrayList<>();
+		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.emptyList(), persisted);
+		boolean[] fillCalled = { false };
+
+		Order result = q.first(em, o -> fillCalled[0] = true);
+
+		assertTrue(fillCalled[0]);
+		assertEquals(Collections.singletonList(result), persisted);
+	}
+
 	// via(EntityManager) also works for SELECT DISTINCT of a single entity.
 	@Test
 	public void testViaDistinctSingleEntity() {
@@ -525,6 +655,12 @@ public class QueryTest {
 		Q<Driver> q = SELECTㅤ(Driver.class).ㅤFROMㅤ(Driver.class).ㅤWHEREㅤ(Driver::id).ㅤᐳㅤ(0);
 		assertEquals("select Driver from Driver where id > 0", q.getHql());
 	}
+	@Test
+	public void testComplex4() {
+		Q<Car> q = SELECTㅤ(Car.class).ㅤFROMㅤ(Car.class).ㅤAS("c").ㅤWHEREㅤ("c", Car::driver).ㅤᐅㅤ(Driver::id).ㅤᐳㅤ(0)
+				.ㅤANDㅤ("c", Car::plate).ㅤᐅㅤ(SerialPlate::id).ㅤᐳㅤ(0);
+		assertEquals("select c from Car c where c.driver.id > 0 and c.plate.id > 0", q.getHql());
+	}
 
 	/**
 	 * A minimal {@link EntityManager} that records the HQL passed to
@@ -557,6 +693,34 @@ public class QueryTest {
 					&& args[0] instanceof String) {
 				capturedHql[0] = (String) args[0];
 				return Proxy.newProxyInstance(cl, new Class<?>[] { TypedQuery.class }, queryHandler);
+			}
+			return null;
+		};
+		return (EntityManager) Proxy.newProxyInstance(cl, new Class<?>[] { EntityManager.class }, emHandler);
+	}
+
+	/**
+	 * Like {@link #fakeEntityManager(String[], List)}, but also records every
+	 * {@code persist(entity)} call made on the returned entity manager into
+	 * {@code persisted}.
+	 */
+	private static EntityManager fakeEntityManagerWithPersist(String[] capturedHql, List<?> resultList,
+			List<Object> persisted) {
+		ClassLoader cl = QueryTest.class.getClassLoader();
+		InvocationHandler queryHandler = (proxy, method, args) -> {
+			if (method.getName().equals("getResultList")) {
+				return resultList;
+			}
+			return proxy;
+		};
+		InvocationHandler emHandler = (proxy, method, args) -> {
+			if (method.getName().equals("createQuery") && args != null && args.length == 2
+					&& args[0] instanceof String) {
+				capturedHql[0] = (String) args[0];
+				return Proxy.newProxyInstance(cl, new Class<?>[] { TypedQuery.class }, queryHandler);
+			}
+			if (method.getName().equals("persist") && args != null && args.length == 1) {
+				persisted.add(args[0]);
 			}
 			return null;
 		};
