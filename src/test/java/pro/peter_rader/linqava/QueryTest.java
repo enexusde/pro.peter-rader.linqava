@@ -125,20 +125,20 @@ public class QueryTest {
 	@Test
 	public void testSelectFromShorthandRendersWithoutAlias() {
 		EntityQ<User> shorthand = SELECTㅤꁘㅤFROM(User.class);
-		assertEquals("select User from User", shorthand.getHql());
+		assertEquals("from User", shorthand.getHql());
 	}
 
 	@Test
 	public void testSelectFromShorthandWhereRendersUnqualifiedProperty() {
 		EntityQ<User> shorthand = SELECTㅤꁘㅤFROM(User.class).ㅤWHEREㅤ(User::Name).ㅤᆖㅤ("John");
-		assertEquals("select User from User where Name = 'John'", shorthand.getHql());
+		assertEquals("from User where Name = 'John'", shorthand.getHql());
 	}
 
 	@Test
 	public void testSelectFromShorthandUnionAllRequiresSameEntityType() {
 		EntityQ<User> q = SELECTㅤꁘㅤFROM(User.class).ㅤWHEREㅤ(User::active).ㅤᆖㅤ(true)
 				.UNIONㅤALL(SELECTㅤꁘㅤFROM(User.class).ㅤWHEREㅤ(User::active).ㅤᆖㅤ(false));
-		assertEquals("select User from User where active = true union all select User from User where active = false",
+		assertEquals("from User where active = true union all from User where active = false",
 				q.getHql());
 	}
 
@@ -400,294 +400,18 @@ public class QueryTest {
 				q.getHql());
 	}
 
-	// via(EntityManager) on a single-entity query returns a typed List<Order>.
+	// getHql() renders a mixed literal + param(...) WHERE clause: the literal is inlined, the
+	// param(...) placeholder is left untouched for the caller to bind. via(EntityManager)'s actual
+	// auto-parameterization/fallback-persist/exception behavior is exercised for real against a
+	// genuine H2-backed Hibernate EntityManager in pro.peter_rader.linqava.h2.QFullFormBehaviorTest —
+	// not here, and not against a mocked/proxied EntityManager.
 	@Test
-	public void testViaSingleEntity() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		String[] capturedHql = new String[1];
-		List<Order> expected = Arrays.asList(new Order(), new Order());
-		EntityManager em = fakeEntityManager(capturedHql, expected);
-
-		Iterable<Order> result = q.via(em);
-		assertEquals("select o from Order o", capturedHql[0]);
-		Iterator<Order> iterator = result.iterator();
-		assertTrue(iterator.hasNext());
-		iterator.next();
-		assertTrue(iterator.hasNext());
-		iterator.next();
-		assertFalse(iterator.hasNext());
-	}
-
-	// via(EntityManager, Supplier) returns the existing result as-is and does NOT
-	// invoke the fallback when the query already finds a match.
-	@Test
-	public void testViaWithFallbackReturnsExistingResultWithoutPersisting() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		Order existing = new Order();
-		List<Object> persisted = new java.util.ArrayList<>();
-		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.singletonList(existing), persisted);
-
-		boolean[] fallbackCalled = { false };
-		Iterable<Order> result = q.via(em, () -> {
-			fallbackCalled[0] = true;
-			return new Order();
-		});
-
-		assertFalse(fallbackCalled[0]);
-		assertTrue(persisted.isEmpty());
-		Iterator<Order> iterator = result.iterator();
-		assertTrue(iterator.hasNext());
-		assertEquals(existing, iterator.next());
-		assertFalse(iterator.hasNext());
-	}
-
-	// via(EntityManager, Supplier) invokes the fallback and persists it when the
-	// query finds no match.
-	@Test
-	public void testViaWithFallbackPersistsWhenEmpty() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		Order created = new Order();
-		List<Object> persisted = new java.util.ArrayList<>();
-		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.emptyList(), persisted);
-
-		Iterable<Order> result = q.via(em, () -> created);
-
-		assertEquals(Collections.singletonList(created), persisted);
-		Iterator<Order> iterator = result.iterator();
-		assertTrue(iterator.hasNext());
-		assertEquals(created, iterator.next());
-		assertFalse(iterator.hasNext());
-	}
-
-	// first(EntityManager) returns only the first entity, not the whole list.
-	@Test
-	public void testFirstReturnsFirstEntity() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		Order first = new Order();
-		Order second = new Order();
-		EntityManager em = fakeEntityManager(new String[1], Arrays.asList(first, second));
-
-		Order result = q.first(em);
-
-		assertEquals(first, result);
-	}
-
-	// first(EntityManager) throws when the query finds no match.
-	@Test(expected = java.util.NoSuchElementException.class)
-	public void testFirstThrowsWhenEmpty() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		EntityManager em = fakeEntityManager(new String[1], Collections.emptyList());
-
-		q.first(em);
-	}
-
-	// first(EntityManager, Supplier) returns the existing first result and does
-	// NOT invoke the fallback when the query already finds a match.
-	@Test
-	public void testFirstWithSupplierFallbackReturnsExistingResultWithoutPersisting() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		Order existing = new Order();
-		List<Object> persisted = new java.util.ArrayList<>();
-		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.singletonList(existing), persisted);
-
-		boolean[] fallbackCalled = { false };
-		Order result = q.first(em, () -> {
-			fallbackCalled[0] = true;
-			return new Order();
-		});
-
-		assertEquals(existing, result);
-		assertFalse(fallbackCalled[0]);
-		assertTrue(persisted.isEmpty());
-	}
-
-	// first(EntityManager, Supplier) invokes the fallback, persists it and returns
-	// it when the query finds no match.
-	@Test
-	public void testFirstWithSupplierFallbackPersistsWhenEmpty() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		Order created = new Order();
-		List<Object> persisted = new java.util.ArrayList<>();
-		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.emptyList(), persisted);
-
-		Order result = q.first(em, () -> created);
-
-		assertEquals(created, result);
-		assertEquals(Collections.singletonList(created), persisted);
-	}
-
-	// first(EntityManager, Consumer) returns the existing first result and does
-	// NOT invoke the fallback fill when the query already finds a match.
-	@Test
-	public void testFirstWithConsumerFallbackReturnsExistingResultWithoutPersisting() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		Order existing = new Order();
-		List<Object> persisted = new java.util.ArrayList<>();
-		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.singletonList(existing), persisted);
-		boolean[] fillCalled = { false };
-
-		Order result = q.first(em, o -> fillCalled[0] = true);
-
-		assertEquals(existing, result);
-		assertFalse(fillCalled[0]);
-		assertTrue(persisted.isEmpty());
-	}
-
-	// first(EntityManager, Consumer) fills, persists and returns a fresh instance
-	// when the query finds no match.
-	@Test
-	public void testFirstWithConsumerFallbackPersistsWhenEmpty() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		List<Object> persisted = new java.util.ArrayList<>();
-		EntityManager em = fakeEntityManagerWithPersist(new String[1], Collections.emptyList(), persisted);
-		boolean[] fillCalled = { false };
-
-		Order result = q.first(em, o -> fillCalled[0] = true);
-
-		assertTrue(fillCalled[0]);
-		assertEquals(Collections.singletonList(result), persisted);
-	}
-
-	// first(EntityManager) returns the first entity when the query matches.
-	@Test
-	public void testFirstOrNullReturnsFirstEntity() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		Order first = new Order();
-		EntityManager em = fakeEntityManager(new String[1], Arrays.asList(first, new Order()));
-
-		assertEquals(first, q.first(em, () -> null));
-	}
-
-	// firstOrNull(EntityManager) returns null instead of throwing when the query
-	// finds no match.
-	@Test
-	public void testFirstOrNullReturnsNullWhenEmpty() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		EntityManager em = fakeEntityManager(new String[1], Collections.emptyList());
-
-		assertEquals(null, q.first(em, () -> null));
-	}
-
-	// via(EntityManager) also works for SELECT DISTINCT of a single entity.
-	@Test
-	public void testViaDistinctSingleEntity() {
-		Q<Customer> q = SELECTㅤ(DISTINCTㅤ(Customer.class)).ㅤFROMㅤ(Customer.class).ㅤAS("c");
-		String[] capturedHql = new String[1];
-		EntityManager em = fakeEntityManager(capturedHql, Collections.singletonList(new Customer()));
-
-		Iterable<Customer> result = q.via(em);
-
-		assertEquals("select distinct c from Customer c", capturedHql[0]);
-		Iterator<Customer> iterator = result.iterator();
-		assertTrue(iterator.hasNext());
-		iterator.next();
-		assertFalse(iterator.hasNext());
-	}
-
-	// via(EntityManager) rejects scalar/tuple projections.
-	@Test(expected = IllegalStateException.class)
-	public void testViaRejectsProjection() {
-		Q<Object> q = SELECTㅤ(Order::id).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		q.via(fakeEntityManager(new String[1], Collections.emptyList()));
-	}
-
-	// via(EntityManager) binds bare literal values as invented :__<property>
-	// parameters (named after the column they're compared against) and leaves
-	// param(...) placeholders untouched; getHql() keeps inlining literals as
-	// before.
-	@Test
-	public void testViaBindsLiteralValuesAsParameters() {
+	public void testGetHqlRendersMixedLiteralAndNamedParameter() {
 		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤWHEREㅤ(Order::status).ㅤᆖㅤ("PAID")
 				.ㅤANDㅤ(Order::total).ㅤᐳㅤ(param("minTotal"));
 		assertEquals("select o from Order o where o.status = 'PAID' and o.total > :minTotal", q.getHql());
-
-		String[] capturedHql = new String[1];
-		Map<String, Object> capturedParams = new HashMap<>();
-		EntityManager em = fakeEntityManager(capturedHql, Collections.emptyList(), capturedParams);
-
-		q.via(em);
-
-		assertEquals("select o from Order o where o.status = :__status and o.total > :minTotal", capturedHql[0]);
-		assertEquals(Collections.singletonMap("__status", "PAID"), capturedParams);
 	}
 
-	// via(EntityManager) binds every literal in the query to a parameter named
-	// after the column it's compared against (in rendering order), leaves
-	// param(...) untouched, still returns the entity manager's result list, and
-	// starts a fresh parameter namespace on every call (no state leaking between
-	// two via() invocations).
-	@Test
-	public void testViaBindsMultipleParametersCorrectlyAndRepeatably() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤWHEREㅤ(Order::status).ㅤᆖㅤ("PAID")
-				.ㅤANDㅤ(Order::total).ㅤᐳㅤ(100).ㅤANDㅤ(Order::customerId).ㅤᆖㅤ(param("cust"));
-		assertEquals("select o from Order o where o.status = 'PAID' and o.total > 100 and o.customerId = :cust",
-				q.getHql());
-
-		List<Order> expected = Arrays.asList(new Order(), new Order());
-
-		for (int run = 0; run < 2; run++) {
-			String[] capturedHql = new String[1];
-			Map<String, Object> capturedParams = new HashMap<>();
-			EntityManager em = fakeEntityManager(capturedHql, expected, capturedParams);
-
-			Iterable<Order> result = q.via(em);
-
-			assertEquals("run " + run,
-					"select o from Order o where o.status = :__status and o.total > :__total and o.customerId = :cust",
-					capturedHql[0]);
-			Map<String, Object> expectedParams = new HashMap<>();
-			expectedParams.put("__status", "PAID");
-			expectedParams.put("__total", 100);
-			assertEquals("run " + run, expectedParams, capturedParams);
-
-			Iterator<Order> iterator = result.iterator();
-			assertTrue(iterator.hasNext());
-			iterator.next();
-			assertTrue(iterator.hasNext());
-			iterator.next();
-			assertFalse(iterator.hasNext());
-		}
-	}
-
-	// via(EntityManager) disambiguates two literals compared against the same
-	// column with a numeric suffix (__total, __total2, ...).
-	@Test
-	public void testViaDisambiguatesCollidingParameterNames() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤWHEREㅤ(Order::total).ㅤᐳㅤ(100)
-				.ㅤANDㅤ(Order::total).ㅤᐸㅤ(1000);
-		assertEquals("select o from Order o where o.total > 100 and o.total < 1000", q.getHql());
-
-		String[] capturedHql = new String[1];
-		Map<String, Object> capturedParams = new HashMap<>();
-		EntityManager em = fakeEntityManager(capturedHql, Collections.emptyList(), capturedParams);
-
-		q.via(em);
-
-		assertEquals("select o from Order o where o.total > :__total and o.total < :__total2", capturedHql[0]);
-		Map<String, Object> expectedParams = new HashMap<>();
-		expectedParams.put("__total", 100);
-		expectedParams.put("__total2", 1000);
-		assertEquals(expectedParams, capturedParams);
-	}
-
-	// via(EntityManager) falls back to a numbered :__pN name when the literal
-	// isn't compared against a single known column (here: a HAVING clause led by
-	// an aggregate).
-	@Test
-	public void testViaFallsBackToNumberedNameWithoutColumnHint() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").GROUPㅤBY(Order::customerId)
-				.HAVING(SUM(Order::total)).ㅤᐳㅤ(1000);
-		assertEquals("select o from Order o group by o.customerId having sum(o.total) > 1000", q.getHql());
-
-		String[] capturedHql = new String[1];
-		Map<String, Object> capturedParams = new HashMap<>();
-		EntityManager em = fakeEntityManager(capturedHql, Collections.emptyList(), capturedParams);
-
-		q.via(em);
-
-		assertEquals("select o from Order o group by o.customerId having sum(o.total) > :__p0", capturedHql[0]);
-		assertEquals(Collections.singletonMap("__p0", 1000), capturedParams);
-	}
 
 	// SELECT c FROM Car c WHERE c.driver.id > 0 AND c.plate.id > 0
 	@Test

@@ -60,13 +60,13 @@ public final class Linq {
 
 	/**
 	 * Shorthand for the common "give me all/matching instances of one entity" query — exactly
-	 * {@code select <Entity> from <Entity>}. Deliberately restricted compared to
+	 * {@code from <Entity>}. Deliberately restricted compared to
 	 * {@link #SELECTㅤ(Class) SELECT(clazz)}.{@link SelectStep#ㅤFROMㅤ(Class) FROM(clazz)}: the returned
 	 * {@link EntityQ} has no {@code AS(String)} and no {@code JOIN}, because a single, unaliased
 	 * source is all this shape ever needs or supports.
 	 *
 	 * <p>Example: {@code SELECTㅤꁘㅤFROM(Order.class).WHERE(Order::status).ᆖ("PAID")} &rarr;
-	 * {@code select Order from Order where status = 'PAID'}.</p>
+	 * {@code from Order where status = 'PAID'}.</p>
 	 *
 	 * <p>Need an alias (e.g. to correlate a sub-query) or a join? Use the full
 	 * {@code SELECT(clazz).FROM(clazz)} form instead, which returns a {@link Q}.</p>

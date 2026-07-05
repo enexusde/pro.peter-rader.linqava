@@ -21,7 +21,7 @@ import jakarta.persistence.TypedQuery;
 
 /**
  * A whole-entity query started via {@link Linq#SELECTㅤꁘㅤFROM(Class)}: exactly
- * {@code select <Entity> from <Entity>}, optionally filtered and ordered, deliberately restricted to
+ * {@code from <Entity>}, optionally filtered and ordered, deliberately restricted to
  * that shape — by type, not by a runtime check.
  *
  * <p>
@@ -178,7 +178,10 @@ public final class EntityQ<E> {
 	private String buildHql(RenderCtx ctx) {
 		String name = entityType.getSimpleName();
 		StringBuilder sb = new StringBuilder();
-		sb.append("select ").append(name).append(" from ").append(name);
+		// Deliberately "from X", not "select X from X": an unaliased "select X" is parsed by
+		// Hibernate as an entity TYPE LITERAL (relevant for polymorphic queries), not as a
+		// shorthand for the implicit whole-entity projection that a bare "from X" already is.
+		sb.append("from ").append(name);
 		if (where != null) {
 			sb.append(" where ").append(where.render(ctx));
 		}
