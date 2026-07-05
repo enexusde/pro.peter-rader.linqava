@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>pro.peter-rader</groupId>
 	<artifactId>linqava</artifactId>
-	<version>2.0.0</version>
+	<version>2.0.1-SNAPSHOT</version>
 	<name>Linqava</name>
 	<description>Fluent type-safe HQL/JPQL query builder for JPA</description>
 	<url>https://github.com/enexusde/pro.peter-rader.linqava</url>
@@ -35,7 +35,7 @@
 		<connection>scm:git:https://github.com/enexusde/pro.peter-rader.linqava.git</connection>
 		<developerConnection>scm:git:https://github.com/enexusde/pro.peter-rader.linqava.git</developerConnection>
 		<url>https://github.com/enexusde/pro.peter-rader.linqava</url>
-		<tag>v2.0.0</tag>
+		<tag>HEAD</tag>
 	</scm>
 
 	<dependencies>
