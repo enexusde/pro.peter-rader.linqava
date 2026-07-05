@@ -5,6 +5,10 @@
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
  */
+
+/**
+ * Fluent type-safe HQL/JPQL query builder for JPA.
+ */
 module pro.peter_rader.linqava {
 	exports pro.peter_rader.linqava;
 

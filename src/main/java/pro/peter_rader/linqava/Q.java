@@ -33,7 +33,7 @@ import jakarta.persistence.TypedQuery;
  *
  * <p>
  * The type parameter {@code E} threads the selected entity type all the way
- * from {@link Linq#SELECT(Class)}/{@link Linq#DISTINCTㅤ(Class)} through every
+ * from {@link Linq#SELECTㅤ(Class)}/{@link Linq#DISTINCTㅤ(Class)} through every
  * clause to {@link #via}, so a single-entity query yields a typed result list
  * with no cast anywhere. Queries that don't select a whole entity (scalar/tuple
  * projections) carry no meaningful {@code E}; {@link #via} rejects those at
@@ -732,11 +732,17 @@ public final class Q<E> {
 	}
 
 	/**
+	 * Like {@link #via(EntityManager)}, but if the query yields no results, obtains a
+	 * new candidate entity from {@code fallbackPersist}, persists it (unless it is
+	 * {@code null}) and returns it instead.
+	 *
 	 * @see #via(EntityManager)
 	 * @param em              The entity-manager, never <code>null</code>
 	 * @param fallbackPersist The fill-method for the new candidate, never
 	 *                        <code>null</code>
-	 * @return
+	 * @return the query result, or a singleton with the persisted fallback entity if
+	 *         the query found nothing and the fallback produced one; an empty set if
+	 *         the query found nothing and the fallback returned {@code null}
 	 */
 	public Iterable<E> via(EntityManager em, java.util.function.Supplier<E> fallbackPersist) {
 		Iterable<E> x = via(em);

@@ -84,6 +84,12 @@ public final class Names {
 		chars[0] = Character.toLowerCase(chars[0]);
 		return new String(chars);
 	}
+
+	/**
+	 * The strategy used by {@link #toPropertyName(String)} to derive a property name from a
+	 * getter's method name. Replace it (e.g. via {@link AtomicReference#set}) to customize
+	 * property-name resolution globally.
+	 */
 	public static final AtomicReference<Function<PropertyNameSearch, String>> NAME = new AtomicReference<Function<PropertyNameSearch, String>>(
 			search -> {
 				String stripped;

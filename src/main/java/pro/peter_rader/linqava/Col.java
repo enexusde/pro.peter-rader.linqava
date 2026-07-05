@@ -15,6 +15,8 @@ import java.util.function.Function;
  *
  * <p>It extends {@link Serializable} so that the property name behind a method reference can be
  * recovered at runtime (via {@code SerializedLambda}) when rendering HQL — see {@link Names}.</p>
+ *
+ * @param <T> the entity type the column is read from
  */
 @FunctionalInterface
 public interface Col<T> extends Function<T, Object>, Serializable {

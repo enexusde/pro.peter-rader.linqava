@@ -31,6 +31,10 @@ package pro.peter_rader.linqava;
  */
 public final class Cond {
 
+	/** Creates an empty condition with no predicate accumulated yet. */
+	Cond() {
+	}
+
 	Expr expr;
 	private String pending = "and";
 	private Expr pendingLeft;

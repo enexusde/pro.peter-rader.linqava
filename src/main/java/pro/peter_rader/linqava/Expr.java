@@ -17,6 +17,10 @@ package pro.peter_rader.linqava;
  */
 public abstract class Expr {
 
+	/** Creates an expression node. */
+	Expr() {
+	}
+
 	abstract String render(RenderCtx ctx);
 
 	// --- arithmetic (glyph operators) ---
