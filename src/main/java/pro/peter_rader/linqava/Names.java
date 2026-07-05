@@ -17,7 +17,7 @@ import java.util.function.Function;
  * Recovers the property name and declaring entity behind a {@link Col} method
  * reference.
  */
-final class Names {
+public final class Names {
 
 	private Names() {
 	}
