@@ -179,7 +179,7 @@ class Car {
 
 	Driver driver() {
 		return null;
-	};
+	}
 
 	SerialPlate plate() {
 		return null;
