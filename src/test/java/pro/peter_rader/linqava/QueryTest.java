@@ -123,11 +123,23 @@ public class QueryTest {
 	}
 
 	@Test
-	public void testSelectFromShorthandMatchesSeparateCalls() {
-		Q<User> shorthand = SELECTㅤꁘㅤFROM(User.class).ㅤAS("u");
-		Q<User> separate = SELECTㅤ(User.class).ㅤFROMㅤ(User.class).ㅤAS("u");
-		assertEquals(separate.getHql(), shorthand.getHql());
-		assertEquals("select u from User u", shorthand.getHql());
+	public void testSelectFromShorthandRendersWithoutAlias() {
+		EntityQ<User> shorthand = SELECTㅤꁘㅤFROM(User.class);
+		assertEquals("select User from User", shorthand.getHql());
+	}
+
+	@Test
+	public void testSelectFromShorthandWhereRendersUnqualifiedProperty() {
+		EntityQ<User> shorthand = SELECTㅤꁘㅤFROM(User.class).ㅤWHEREㅤ(User::Name).ㅤᆖㅤ("John");
+		assertEquals("select User from User where Name = 'John'", shorthand.getHql());
+	}
+
+	@Test
+	public void testSelectFromShorthandUnionAllRequiresSameEntityType() {
+		EntityQ<User> q = SELECTㅤꁘㅤFROM(User.class).ㅤWHEREㅤ(User::active).ㅤᆖㅤ(true)
+				.UNIONㅤALL(SELECTㅤꁘㅤFROM(User.class).ㅤWHEREㅤ(User::active).ㅤᆖㅤ(false));
+		assertEquals("select User from User where active = true union all select User from User where active = false",
+				q.getHql());
 	}
 
 	// SELECT id FROM User WHERE Name='John'

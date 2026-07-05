@@ -284,7 +284,7 @@ public final class Q<E> {
 	 * @return the pending comparison, awaiting an operator
 	 * @throws IndexOutOfBoundsException if no join has been added yet
 	 */
-	public <T> WhereStep<E> ㅤONㅤ(Col<T> col) {
+	public <T> WhereStep<Q<E>> ㅤONㅤ(Col<T> col) {
 		Join j = joins.get(joins.size() - 1);
 		return new WhereStep<>(Expr.col(col), Names.property(col), "and", (predicate, connector) -> {
 			j.on = predicate;
@@ -323,7 +323,7 @@ public final class Q<E> {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<E> ㅤWHEREㅤ(Col<T> col) {
+	public <T> WhereStep<Q<E>> ㅤWHEREㅤ(Col<T> col) {
 		return where(Expr.col(col), Names.property(col), "and");
 	}
 
@@ -343,7 +343,7 @@ public final class Q<E> {
 	 * @param <T>   the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<E> ㅤWHEREㅤ(String alias, Col<T> col) {
+	public <T> WhereStep<Q<E>> ㅤWHEREㅤ(String alias, Col<T> col) {
 		return where(Linq.col(alias, col), Names.property(col), "and");
 	}
 
@@ -359,7 +359,7 @@ public final class Q<E> {
 	 * @param left the left operand; must not be {@code null}
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public WhereStep<E> ㅤWHEREㅤ(Object left) {
+	public WhereStep<Q<E>> ㅤWHEREㅤ(Object left) {
 		return where(Expr.val(left), null, "and");
 	}
 
@@ -378,7 +378,7 @@ public final class Q<E> {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<E> ㅤANDㅤ(Col<T> col) {
+	public <T> WhereStep<Q<E>> ㅤANDㅤ(Col<T> col) {
 		return where(Expr.col(col), Names.property(col), "and");
 	}
 
@@ -394,7 +394,7 @@ public final class Q<E> {
 	 * @param <T>   the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<E> ㅤANDㅤ(String alias, Col<T> col) {
+	public <T> WhereStep<Q<E>> ㅤANDㅤ(String alias, Col<T> col) {
 		return where(Linq.col(alias, col), Names.property(col), "and");
 	}
 
@@ -405,7 +405,7 @@ public final class Q<E> {
 	 * @param left the left operand; must not be {@code null}
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public WhereStep<E> ㅤANDㅤ(Object left) {
+	public WhereStep<Q<E>> ㅤANDㅤ(Object left) {
 		return where(Expr.val(left), null, "and");
 	}
 
@@ -419,7 +419,7 @@ public final class Q<E> {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<E> ㅤORㅤ(Col<T> col) {
+	public <T> WhereStep<Q<E>> ㅤORㅤ(Col<T> col) {
 		return where(Expr.col(col), Names.property(col), "or");
 	}
 
@@ -435,7 +435,7 @@ public final class Q<E> {
 	 * @param <T>   the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<E> ㅤORㅤ(String alias, Col<T> col) {
+	public <T> WhereStep<Q<E>> ㅤORㅤ(String alias, Col<T> col) {
 		return where(Linq.col(alias, col), Names.property(col), "or");
 	}
 
@@ -446,11 +446,11 @@ public final class Q<E> {
 	 * @param left the left operand; must not be {@code null}
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public WhereStep<E> ㅤORㅤ(Object left) {
+	public WhereStep<Q<E>> ㅤORㅤ(Object left) {
 		return where(Expr.val(left), null, "or");
 	}
 
-	private WhereStep<E> where(Expr left, String leftHint, String connector) {
+	private WhereStep<Q<E>> where(Expr left, String leftHint, String connector) {
 		return new WhereStep<>(left, leftHint, connector, (predicate, conn) -> {
 			where = (where == null) ? predicate : Expr.bin(where, conn, predicate);
 			return this;
@@ -524,7 +524,7 @@ public final class Q<E> {
 	 * @param left the left operand; must not be {@code null}
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public WhereStep<E> HAVING(Object left) {
+	public WhereStep<Q<E>> HAVING(Object left) {
 		Expr l = Expr.val(left);
 		return new WhereStep<>(l, null, "and", (predicate, connector) -> {
 			having = (having == null) ? predicate : Expr.bin(having, connector, predicate);

@@ -58,8 +58,25 @@ public final class Linq {
 		return new SelectStep<>(new Q<Object>().addSelect(cols));
 	}
 
-	public static <T> Q<T> SELECTㅤꁘㅤFROM(Class<T> clazz) {
-		return SELECTㅤ(clazz).ㅤFROMㅤ(clazz);
+	/**
+	 * Shorthand for the common "give me all/matching instances of one entity" query — exactly
+	 * {@code select <Entity> from <Entity>}. Deliberately restricted compared to
+	 * {@link #SELECTㅤ(Class) SELECT(clazz)}.{@link SelectStep#ㅤFROMㅤ(Class) FROM(clazz)}: the returned
+	 * {@link EntityQ} has no {@code AS(String)} and no {@code JOIN}, because a single, unaliased
+	 * source is all this shape ever needs or supports.
+	 *
+	 * <p>Example: {@code SELECTㅤꁘㅤFROM(Order.class).WHERE(Order::status).ᆖ("PAID")} &rarr;
+	 * {@code select Order from Order where status = 'PAID'}.</p>
+	 *
+	 * <p>Need an alias (e.g. to correlate a sub-query) or a join? Use the full
+	 * {@code SELECT(clazz).FROM(clazz)} form instead, which returns a {@link Q}.</p>
+	 *
+	 * @param clazz the queried entity class; must not be {@code null}
+	 * @param <T>   the queried entity type
+	 * @return the restricted query builder
+	 */
+	public static <T> EntityQ<T> SELECTㅤꁘㅤFROM(Class<T> clazz) {
+		return new EntityQ<>(clazz);
 	}
 
 	/**
