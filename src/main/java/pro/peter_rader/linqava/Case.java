@@ -9,7 +9,6 @@ package pro.peter_rader.linqava;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Fluent, compile-time-safe {@code CASE WHEN ... THEN ... [ELSE ...] END} expression builder.
