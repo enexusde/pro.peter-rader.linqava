@@ -25,7 +25,7 @@ import jakarta.persistence.TypedQuery;
  *
  * <p>
  * The fluent entry points enforce a valid clause order at compile time:
- * {@link Linq#SELECT} returns a {@link SelectStep} that only offers
+ * {@link Linq#SELECTㅤ(Class)} returns a {@link SelectStep} that only offers
  * {@code FROM}, and {@code FROM} returns this {@code Q}, which no longer offers
  * {@code SELECT} or {@code FROM}. Hence {@code FROM(x).FROM(y)}, a double
  * {@code SELECT} and a missing {@code FROM} cannot be written.
@@ -33,7 +33,7 @@ import jakarta.persistence.TypedQuery;
  *
  * <p>
  * The type parameter {@code E} threads the selected entity type all the way
- * from {@link Linq#SELECT(Class)}/{@link Linq#DISTINCT(Class)} through every
+ * from {@link Linq#SELECT(Class)}/{@link Linq#DISTINCTㅤ(Class)} through every
  * clause to {@link #via}, so a single-entity query yields a typed result list
  * with no cast anywhere. Queries that don't select a whole entity (scalar/tuple
  * projections) carry no meaningful {@code E}; {@link #via} rejects those at
@@ -731,6 +731,13 @@ public final class Q<E> {
 		return tq.getResultList();
 	}
 
+	/**
+	 * @see #via(EntityManager)
+	 * @param em              The entity-manager, never <code>null</code>
+	 * @param fallbackPersist The fill-method for the new candidate, never
+	 *                        <code>null</code>
+	 * @return
+	 */
 	public Iterable<E> via(EntityManager em, java.util.function.Supplier<E> fallbackPersist) {
 		Iterable<E> x = via(em);
 		if (x.iterator().hasNext()) {
@@ -743,6 +750,7 @@ public final class Q<E> {
 		em.persist(e);
 		return Collections.singleton(e);
 	}
+
 	/**
 	 * Like {@link #via(EntityManager, java.util.function.Supplier)}, but fills a
 	 * fresh instance (built via {@code entityType}'s no-arg constructor) instead of
@@ -798,9 +806,9 @@ public final class Q<E> {
 	 * @param em the JPA entity manager used to create and run the query; must not
 	 *           be {@code null}
 	 * @return the first matching entity
-	 * @throws NullPointerException          if {@code em} is {@code null}
-	 * @throws IllegalStateException         if the query does not select a single
-	 *                                        entity
+	 * @throws NullPointerException             if {@code em} is {@code null}
+	 * @throws IllegalStateException            if the query does not select a
+	 *                                          single entity
 	 * @throws java.util.NoSuchElementException if the query finds no match
 	 */
 	public E first(EntityManager em) throws NoSuchElementException {
@@ -812,9 +820,9 @@ public final class Q<E> {
 	 * only the first entity instead of the whole result (the query's first match,
 	 * or the persisted fallback when there is no match).
 	 *
-	 * @param em             the JPA entity manager used to create and run the
-	 *                       query, and to persist the fallback entity; must not be
-	 *                       {@code null}
+	 * @param em              the JPA entity manager used to create and run the
+	 *                        query, and to persist the fallback entity; must not be
+	 *                        {@code null}
 	 * @param fallbackPersist supplies and persists a replacement entity when the
 	 *                        query finds no match; must not be {@code null}
 	 * @return the first matching entity, or the newly-persisted fallback
@@ -832,9 +840,9 @@ public final class Q<E> {
 	}
 
 	/**
-	 * Like {@link #via(EntityManager, Consumer)}, but returns only the first
-	 * entity instead of the whole result (the query's first match, or the
-	 * newly-persisted, filled instance when there is no match).
+	 * Like {@link #via(EntityManager, Consumer)}, but returns only the first entity
+	 * instead of the whole result (the query's first match, or the newly-persisted,
+	 * filled instance when there is no match).
 	 *
 	 * <p>
 	 * Passing {@code null} for {@code fallbackFill} disables the fallback:
@@ -842,8 +850,8 @@ public final class Q<E> {
 	 * persisting anything when the query finds no match.
 	 * </p>
 	 *
-	 * @param em           the JPA entity manager used to create and run the
-	 *                     query, and to persist the fallback entity; must not be
+	 * @param em           the JPA entity manager used to create and run the query,
+	 *                     and to persist the fallback entity; must not be
 	 *                     {@code null}
 	 * @param fallbackFill fills the fresh instance when the query finds no match;
 	 *                     {@code null} to return {@code null} instead of falling

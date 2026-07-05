@@ -72,7 +72,7 @@ public final class Case {
 		}
 
 		/**
-		 * Supplies the result for the preceding {@link Case#WHEN(Function) WHEN}.
+		 * Supplies the result for the preceding {@link Case#WHEN(Cond) WHEN}.
 		 *
 		 * @param value the result expression/literal, e.g. {@code "GOLD"} or {@code col(Order::total)};
 		 *              must not be {@code null}
