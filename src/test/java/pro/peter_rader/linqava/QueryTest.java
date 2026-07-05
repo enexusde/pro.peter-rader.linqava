@@ -22,6 +22,7 @@ import static pro.peter_rader.linqava.Linq.NULLIF;
 import static pro.peter_rader.linqava.Linq.RANK;
 import static pro.peter_rader.linqava.Linq.ROW_NUMBER;
 import static pro.peter_rader.linqava.Linq.SELECTㅤ;
+import static pro.peter_rader.linqava.Linq.SELECTㅤꁘㅤFROM;
 import static pro.peter_rader.linqava.Linq.SIZE;
 import static pro.peter_rader.linqava.Linq.SUM;
 import static pro.peter_rader.linqava.Linq.WITH;
@@ -108,6 +109,26 @@ import pro.peter_rader.linqava.User;
  * </ul>
  */
 public class QueryTest {
+
+	@Test
+	public void testGetterPrefixIsStrippedAndDecapitalized() {
+		Q<Object> q = SELECTㅤ(LegacyBean::getName).ㅤFROMㅤ(LegacyBean.class).ㅤWHEREㅤ(LegacyBean::isActive).ㅤᆖㅤ(true);
+		assertEquals("select name from LegacyBean where active = true", q.getHql());
+	}
+
+	@Test
+	public void testGetterPrefixWithLeadingAcronymIsKeptAsIs() {
+		Q<Object> q = SELECTㅤ(LegacyBean::getURLName).ㅤFROMㅤ(LegacyBean.class);
+		assertEquals("select URLName from LegacyBean", q.getHql());
+	}
+
+	@Test
+	public void testSelectFromShorthandMatchesSeparateCalls() {
+		Q<User> shorthand = SELECTㅤꁘㅤFROM(User.class).ㅤAS("u");
+		Q<User> separate = SELECTㅤ(User.class).ㅤFROMㅤ(User.class).ㅤAS("u");
+		assertEquals(separate.getHql(), shorthand.getHql());
+		assertEquals("select u from User u", shorthand.getHql());
+	}
 
 	// SELECT id FROM User WHERE Name='John'
 	@Test
@@ -515,6 +536,26 @@ public class QueryTest {
 		assertEquals(Collections.singletonList(result), persisted);
 	}
 
+	// first(EntityManager) returns the first entity when the query matches.
+	@Test
+	public void testFirstOrNullReturnsFirstEntity() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Order first = new Order();
+		EntityManager em = fakeEntityManager(new String[1], Arrays.asList(first, new Order()));
+
+		assertEquals(first, q.first(em, () -> null));
+	}
+
+	// firstOrNull(EntityManager) returns null instead of throwing when the query
+	// finds no match.
+	@Test
+	public void testFirstOrNullReturnsNullWhenEmpty() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		EntityManager em = fakeEntityManager(new String[1], Collections.emptyList());
+
+		assertEquals(null, q.first(em, () -> null));
+	}
+
 	// via(EntityManager) also works for SELECT DISTINCT of a single entity.
 	@Test
 	public void testViaDistinctSingleEntity() {
@@ -655,6 +696,7 @@ public class QueryTest {
 		Q<Driver> q = SELECTㅤ(Driver.class).ㅤFROMㅤ(Driver.class).ㅤWHEREㅤ(Driver::id).ㅤᐳㅤ(0);
 		assertEquals("select Driver from Driver where id > 0", q.getHql());
 	}
+
 	@Test
 	public void testComplex4() {
 		Q<Car> q = SELECTㅤ(Car.class).ㅤFROMㅤ(Car.class).ㅤAS("c").ㅤWHEREㅤ("c", Car::driver).ㅤᐅㅤ(Driver::id).ㅤᐳㅤ(0)

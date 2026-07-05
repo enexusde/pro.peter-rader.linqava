@@ -198,3 +198,21 @@ class CustomerSummary {
 	CustomerSummary(Object id, Object name, Object orderCount) {
 	}
 }
+
+/*
+ * A fixture with real JavaBeans accessors (get/is prefixes), unlike the other demo entities above,
+ * to verify that Names#property strips the prefix and decapitalizes the remainder.
+ */
+class LegacyBean {
+	String getName() {
+		return null;
+	}
+
+	boolean isActive() {
+		return false;
+	}
+
+	String getURLName() {
+		return null;
+	}
+}

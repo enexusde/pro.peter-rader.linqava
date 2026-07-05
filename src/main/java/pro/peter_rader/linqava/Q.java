@@ -10,8 +10,10 @@ package pro.peter_rader.linqava;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -748,13 +750,23 @@ public final class Q<E> {
 	 * fresh instance (built via {@code entityType}'s no-arg constructor) instead of
 	 * supplying an already-built one.
 	 *
+	 * <p>
+	 * Passing {@code null} for {@code fallbackFill} disables the fallback: when the
+	 * query finds no match, nothing is instantiated or persisted, and a singleton
+	 * holding {@code null} is returned instead (so
+	 * {@link #first(EntityManager, Consumer)}{@code (em, null)} yields
+	 * {@code null}).
+	 * </p>
+	 *
 	 * @param em           the JPA entity manager used to create and run the query,
 	 *                     and to persist the fallback entity; must not be
 	 *                     {@code null}
 	 * @param fallbackFill fills the fresh instance when the query finds no match;
-	 *                     must not be {@code null}
+	 *                     {@code null} to return {@code null} instead of falling
+	 *                     back
 	 * @return the query result if non-empty, otherwise a singleton with the
-	 *         newly-persisted, filled instance
+	 *         newly-persisted, filled instance, or with {@code null} if
+	 *         {@code fallbackFill} is {@code null}
 	 * @throws IllegalStateException if {@code entityType} has no accessible no-arg
 	 *                               constructor
 	 */
@@ -762,6 +774,9 @@ public final class Q<E> {
 		Iterable<E> x = via(em);
 		if (x.iterator().hasNext()) {
 			return x;
+		}
+		if (fallbackFill == null) {
+			return Collections.singleton(null);
 		}
 		E e = newEntityInstance();
 		fallbackFill.accept(e);
@@ -790,7 +805,7 @@ public final class Q<E> {
 	 *                                        entity
 	 * @throws java.util.NoSuchElementException if the query finds no match
 	 */
-	public E first(EntityManager em) {
+	public E first(EntityManager em) throws NoSuchElementException {
 		return via(em).iterator().next();
 	}
 
@@ -807,7 +822,15 @@ public final class Q<E> {
 	 * @return the first matching entity, or the newly-persisted fallback
 	 */
 	public E first(EntityManager em, java.util.function.Supplier<E> fallbackPersist) {
-		return via(em, fallbackPersist).iterator().next();
+		Iterable<E> x = via(em);
+		if (x.iterator().hasNext()) {
+			return x.iterator().next();
+		}
+		E result = fallbackPersist.get();
+		if (result != null) {
+			em.persist(result);
+		}
+		return result;
 	}
 
 	/**
@@ -815,12 +838,21 @@ public final class Q<E> {
 	 * entity instead of the whole result (the query's first match, or the
 	 * newly-persisted, filled instance when there is no match).
 	 *
+	 * <p>
+	 * Passing {@code null} for {@code fallbackFill} disables the fallback:
+	 * {@code first(em, null)} returns {@code null} instead of throwing or
+	 * persisting anything when the query finds no match.
+	 * </p>
+	 *
 	 * @param em           the JPA entity manager used to create and run the
 	 *                     query, and to persist the fallback entity; must not be
 	 *                     {@code null}
 	 * @param fallbackFill fills the fresh instance when the query finds no match;
-	 *                     must not be {@code null}
-	 * @return the first matching entity, or the newly-persisted, filled instance
+	 *                     {@code null} to return {@code null} instead of falling
+	 *                     back
+	 * @return the first matching entity, the newly-persisted, filled instance, or
+	 *         {@code null} if there is no match and {@code fallbackFill} is
+	 *         {@code null}
 	 */
 	public E first(EntityManager em, Consumer<E> fallbackFill) {
 		return via(em, fallbackFill).iterator().next();

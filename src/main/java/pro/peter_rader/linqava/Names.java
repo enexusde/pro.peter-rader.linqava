@@ -27,9 +27,42 @@ final class Names {
 		}
 	}
 
-	/** The getter name, e.g. {@code User::Name} -> {@code "Name"}. */
+	/**
+	 * The property name behind a getter, e.g. {@code User::Name} -&gt; {@code "Name"} or
+	 * {@code Order::getCustomerId} -&gt; {@code "customerId"}. JavaBeans {@code get}/{@code is}
+	 * accessor prefixes are stripped and the remainder is decapitalized (following
+	 * {@code java.beans.Introspector#decapitalize}); a method name without such a prefix (or
+	 * where the character after the prefix isn't uppercase, e.g. {@code get()} or
+	 * {@code isolate()}) is returned unchanged.
+	 */
 	static String property(Col<?> col) {
-		return serialized(col).getImplMethodName();
+		return toPropertyName(serialized(col).getImplMethodName());
+	}
+
+	private static String toPropertyName(String methodName) {
+		String stripped;
+		if (methodName.startsWith("get") && methodName.length() > 3 && Character.isUpperCase(methodName.charAt(3))) {
+			stripped = methodName.substring(3);
+		} else if (methodName.startsWith("is") && methodName.length() > 2
+				&& Character.isUpperCase(methodName.charAt(2))) {
+			stripped = methodName.substring(2);
+		} else {
+			return methodName;
+		}
+		return decapitalize(stripped);
+	}
+
+	/** Mirrors {@code java.beans.Introspector#decapitalize} without depending on {@code java.desktop}. */
+	private static String decapitalize(String name) {
+		if (name.isEmpty()) {
+			return name;
+		}
+		if (name.length() > 1 && Character.isUpperCase(name.charAt(0)) && Character.isUpperCase(name.charAt(1))) {
+			return name;
+		}
+		char[] chars = name.toCharArray();
+		chars[0] = Character.toLowerCase(chars[0]);
+		return new String(chars);
 	}
 
 	/** The simple name of the entity declaring the getter, e.g. {@code Order::id} -> {@code "Order"}. */
