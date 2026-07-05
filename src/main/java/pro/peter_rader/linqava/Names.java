@@ -12,7 +12,6 @@ import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
-
 /**
  * Recovers the property name and declaring entity behind a {@link Col} method
  * reference.
@@ -57,8 +56,7 @@ public final class Names {
 	}
 
 	private static String toPropertyName(String methodName) {
-		var myName = NAME;
-		return myName.get().apply(new PropertyNameSearch(methodName));
+		return NAME.get().apply(methodName);
 
 	}
 
@@ -72,7 +70,10 @@ public final class Names {
 		return slash < 0 ? implClass : implClass.substring(slash + 1);
 	}
 
-	/** Mirrors {@code java.beans.Introspector#decapitalize} without depending on {@code java.desktop}. */
+	/**
+	 * Mirrors {@code java.beans.Introspector#decapitalize} without depending on
+	 * {@code java.desktop}.
+	 */
 	private static String decapitalize(String name) {
 		if (name.isEmpty()) {
 			return name;
@@ -86,22 +87,19 @@ public final class Names {
 	}
 
 	/**
-	 * The strategy used by {@link #toPropertyName(String)} to derive a property name from a
-	 * getter's method name. Replace it (e.g. via {@link AtomicReference#set}) to customize
-	 * property-name resolution globally.
+	 * The strategy used by {@link #toPropertyName(String)} to derive a property
+	 * name from a getter's method name. Replace it (e.g. via
+	 * {@link AtomicReference#set}) to customize property-name resolution globally.
 	 */
-	public static final AtomicReference<Function<PropertyNameSearch, String>> NAME = new AtomicReference<Function<PropertyNameSearch, String>>(
-			search -> {
-				String stripped;
-				if (search.methodName().startsWith("get") && search.methodName().length() > 3
-						&& Character.isUpperCase(search.methodName().charAt(3))) {
-					stripped = search.methodName().substring(3);
-				} else if (search.methodName().startsWith("is") && search.methodName().length() > 2
-						&& Character.isUpperCase(search.methodName().charAt(2))) {
-					stripped = search.methodName().substring(2);
-				} else {
-					return search.methodName();
-				}
-				return decapitalize(stripped);
-			});
+	public static final AtomicReference<Function<String, String>> NAME = new AtomicReference<>(name -> {
+		String stripped;
+		if (name.startsWith("get") && name.length() > 3 && Character.isUpperCase(name.charAt(3))) {
+			stripped = name.substring(3);
+		} else if (name.startsWith("is") && name.length() > 2 && Character.isUpperCase(name.charAt(2))) {
+			stripped = name.substring(2);
+		} else {
+			return name;
+		}
+		return decapitalize(stripped);
+	});
 }
