@@ -9,5 +9,4 @@ module pro.peter_rader.linqava {
 	exports pro.peter_rader.linqava;
 
 	requires jakarta.persistence;
-	requires org.hibernate.models;
 }

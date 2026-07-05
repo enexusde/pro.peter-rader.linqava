@@ -46,14 +46,6 @@
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<!-- Delegates getter-to-property-name derivation (Names.decapitalize) to Hibernate's own
-			     class-model scanning library, instead of the merely-coincidentally-matching
-			     java.beans.Introspector. -->
-			<groupId>org.hibernate.models</groupId>
-			<artifactId>hibernate-models</artifactId>
-			<version>1.1.1</version>
-		</dependency>
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 			<version>4.11</version>
