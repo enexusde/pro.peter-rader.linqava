@@ -17,6 +17,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.FlushModeType;
 import jakarta.persistence.TypedQuery;
 
 /**
@@ -54,6 +55,9 @@ public final class EntityQ<E> {
 	private final Class<E> entityType;
 	private Expr where;
 	private final List<Expr> orderBy = new ArrayList<>();
+	private Expr limit;
+	private Expr offset;
+	private FlushModeType flushMode;
 	private EntityQ<E> unionAll;
 
 	EntityQ(Class<E> entityType) {
@@ -148,6 +152,42 @@ public final class EntityQ<E> {
 	}
 
 	/**
+	 * The {@code limit} clause, capping the number of returned rows.
+	 *
+	 * @param maxResults the maximum number of rows to return; must not be negative
+	 * @return this builder, for chaining
+	 */
+	public EntityQ<E> LIMIT(int maxResults) {
+		limit = Expr.val(maxResults, "limit");
+		return this;
+	}
+
+	/**
+	 * The {@code offset} clause, skipping this many rows before the first returned row — typically
+	 * combined with {@link #LIMIT(int)} for pagination.
+	 *
+	 * @param firstResult the zero-based index of the first row to return; must not be negative
+	 * @return this builder, for chaining
+	 */
+	public EntityQ<E> OFFSET(int firstResult) {
+		offset = Expr.val(firstResult, "offset");
+		return this;
+	}
+
+	/**
+	 * Overrides the {@link TypedQuery}'s flush mode for every {@code via}/{@code first} call on this
+	 * query (all of them ultimately create their {@link TypedQuery} through
+	 * {@link #via(EntityManager)}), instead of leaving it at the persistence context's default.
+	 *
+	 * @param mode the flush mode to apply; must not be {@code null}
+	 * @return this builder, for chaining
+	 */
+	public EntityQ<E> FLUSHㅤMODE(FlushModeType mode) {
+		flushMode = Objects.requireNonNull(mode, "mode");
+		return this;
+	}
+
+	/**
 	 * Appends a {@code union all} with another query selecting the <em>same</em> entity type.
 	 *
 	 * @param other the query to append; must not be {@code null}
@@ -188,6 +228,12 @@ public final class EntityQ<E> {
 		if (!orderBy.isEmpty()) {
 			sb.append(" order by ").append(Expr.list(ctx, orderBy.toArray()));
 		}
+		if (limit != null) {
+			sb.append(" limit ").append(limit.render(ctx));
+		}
+		if (offset != null) {
+			sb.append(" offset ").append(offset.render(ctx));
+		}
 		String hql = sb.toString();
 		if (unionAll != null) {
 			hql = hql + " union all " + unionAll.hqlFor(ctx.collector());
@@ -207,6 +253,9 @@ public final class EntityQ<E> {
 		Objects.requireNonNull(em, "em");
 		ParamCollector collector = new ParamCollector();
 		TypedQuery<E> tq = em.createQuery(hqlFor(collector), entityType);
+		if (flushMode != null) {
+			tq.setFlushMode(flushMode);
+		}
 		for (Map.Entry<String, Object> e : collector.params().entrySet()) {
 			tq.setParameter(e.getKey(), e.getValue());
 		}

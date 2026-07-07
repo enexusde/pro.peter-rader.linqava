@@ -9,6 +9,7 @@
 		<class>pro.peter_rader.linqava.h2.Order</class>
 		<class>pro.peter_rader.linqava.h2.Product</class>
 		<class>pro.peter_rader.linqava.h2.HTMLTag</class>
+		<class>pro.peter_rader.linqava.h2.EMailAddressLocalName</class>
 		<exclude-unlisted-classes>true</exclude-unlisted-classes>
 		<properties>
 			<property name="jakarta.persistence.jdbc.driver" value="org.h2.Driver" />

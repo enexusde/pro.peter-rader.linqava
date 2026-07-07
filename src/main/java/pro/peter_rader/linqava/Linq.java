@@ -133,6 +133,28 @@ public final class Linq {
 	}
 
 	/**
+	 * Starts a {@code SELECT} of a single scalar/aggregate whose Java result type
+	 * is statically known (e.g. {@link #COUNTㅤꁘ()}) — the type is threaded through
+	 * to the resulting {@link ScalarQ}, whose {@link ScalarQ#via(jakarta.persistence.EntityManager)}
+	 * returns that single value directly (not a list), since a bare aggregate
+	 * always yields exactly one row.
+	 *
+	 * <p>
+	 * Example: {@code SELECT(COUNTㅤꁘ()).FROM(Order.class)} &rarr; a
+	 * {@code ScalarQ<Long>}.
+	 * </p>
+	 *
+	 * @param expr the scalar expression, e.g. {@code COUNTㅤꁘ()}; must not be
+	 *             {@code null}
+	 * @param <T>  the Java type of the scalar
+	 * @return the {@code SELECT} phase, which requires a
+	 *         {@link ScalarSelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T> ScalarSelectStep<T> SELECTㅤ(ScalarExpr<T> expr) {
+		return new ScalarSelectStep<>(new Q<>(expr.type).addSelect(expr), expr.type);
+	}
+
+	/**
 	 * Starts a query with a common table expression
 	 * ({@code WITH name AS (definition)}).
 	 *
@@ -189,6 +211,7 @@ public final class Linq {
 	 * @param <T> the entity type owning the getter
 	 * @return the column as an {@link Expr}
 	 */
+	@Deprecated
 	public static <T> Expr col(Col<T> col) {
 		String prop = Names.property(col);
 		String entity = Names.entity(col);
@@ -210,6 +233,7 @@ public final class Linq {
 	 *                      must not be {@code null}, e.g. {@code "orderCount"}
 	 * @return the column as an {@link Expr}
 	 */
+	@Deprecated
 	public static Expr col(String derivedColumn) {
 		return Expr.of(ctx -> derivedColumn);
 	}
@@ -247,6 +271,7 @@ public final class Linq {
 	 * @param <T>   the entity type owning the getter
 	 * @return the aliased column as an {@link Expr}
 	 */
+	@Deprecated
 	public static <T> Expr col(String alias, Col<T> col) {
 		String prop = Names.property(col);
 		return Expr.of(ctx -> alias + "." + prop);
@@ -317,6 +342,29 @@ public final class Linq {
 	}
 
 	// ===== aggregate / scalar functions =====
+
+	/**
+	 * The {@code count(*)} aggregate — counts all rows of the query, regardless of
+	 * column nulls. Always yields a {@code long}, so the returned expression
+	 * carries {@code Long.class} as its Java result type: selecting it bare (not
+	 * chained into a comparison) via {@link #SELECTㅤ(ScalarExpr)} threads
+	 * {@code Long} through to a cast-free {@link ScalarQ#via(jakarta.persistence.EntityManager)}
+	 * that returns the count directly, not wrapped in a list.
+	 *
+	 * <p>
+	 * Example: {@code SELECT(COUNTㅤꁘ()).FROM(Order.class)} &rarr;
+	 * {@code select count(*) from Order} as a {@code ScalarQ<Long>}; or chained
+	 * into a comparison, e.g. {@code SELECT(COUNTㅤꁘ().ㅤᆖㅤ(0)).FROM(Order.class)}
+	 * &rarr; {@code select count(*) = 0 from Order} as a {@code ScalarQ<Boolean>}
+	 * (see {@link ScalarExpr} for how comparisons re-thread the type to
+	 * {@code Boolean}).
+	 * </p>
+	 *
+	 * @return the aggregate as a {@link ScalarExpr} typed {@code Long}
+	 */
+	public static ScalarExpr<Long> COUNTㅤꁘ() {
+		return new ScalarExpr<>(Long.class, Expr.of(ctx -> "count(*)"));
+	}
 
 	/**
 	 * The {@code count(...)} aggregate.
@@ -404,6 +452,34 @@ public final class Linq {
 	}
 
 	/**
+	 * The {@code lower(...)} function (lowercases a string expression).
+	 *
+	 * <p>
+	 * Example: {@code LOWER(col(Order::status))} &rarr; {@code lower(o.status)}.
+	 * </p>
+	 *
+	 * @param arg the string-valued expression; must not be {@code null}
+	 * @return the function call as an {@link Expr}
+	 */
+	public static Expr LOWER(Object arg) {
+		return fn("lower", arg);
+	}
+
+	/**
+	 * The {@code upper(...)} function (uppercases a string expression).
+	 *
+	 * <p>
+	 * Example: {@code UPPER(col(Order::status))} &rarr; {@code upper(o.status)}.
+	 * </p>
+	 *
+	 * @param arg the string-valued expression; must not be {@code null}
+	 * @return the function call as an {@link Expr}
+	 */
+	public static Expr UPPER(Object arg) {
+		return fn("upper", arg);
+	}
+
+	/**
 	 * The {@code coalesce(...)} function returning its first non-null argument.
 	 *
 	 * <p>
@@ -436,6 +512,29 @@ public final class Linq {
 		Expr ea = Expr.val(a);
 		Expr eb = Expr.val(b);
 		return Expr.of(ctx -> "nullif(" + ea.render(ctx) + ", " + eb.render(ctx) + ")");
+	}
+
+	/**
+	 * The {@code cast(expr as targetType)} function.
+	 *
+	 * <p>
+	 * {@code targetType} is rendered as its simple name (e.g. {@code String.class}
+	 * &rarr; {@code String}), which Hibernate resolves against its unified type
+	 * system (Java type name, or a recognized cast-type keyword).
+	 * </p>
+	 *
+	 * <p>
+	 * Example: {@code CAST(col(Order::total), String.class)} &rarr;
+	 * {@code cast(o.total as String)}.
+	 * </p>
+	 *
+	 * @param expr       the cast expression; must not be {@code null}
+	 * @param targetType the target Java type; must not be {@code null}
+	 * @return the function call as an {@link Expr}
+	 */
+	public static Expr ㅤCASTㅤ(Object expr, Class<?> targetType) {
+		Expr e = Expr.val(expr);
+		return Expr.of(ctx -> "cast(" + e.render(ctx) + " as " + targetType.getSimpleName() + ")");
 	}
 
 	// --- Col overloads: take a bare getter reference directly, e.g.
@@ -515,6 +614,30 @@ public final class Linq {
 	}
 
 	/**
+	 * {@code lower(column)}, e.g. {@code LOWER(Order::status)} &rarr;
+	 * {@code lower(o.status)}.
+	 *
+	 * @param col the column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the column
+	 * @return the function call as an {@link Expr}
+	 */
+	public static <T> Expr LOWER(Col<T> col) {
+		return fn("lower", Expr.col(col));
+	}
+
+	/**
+	 * {@code upper(column)}, e.g. {@code UPPER(Order::status)} &rarr;
+	 * {@code upper(o.status)}.
+	 *
+	 * @param col the column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the column
+	 * @return the function call as an {@link Expr}
+	 */
+	public static <T> Expr UPPER(Col<T> col) {
+		return fn("upper", Expr.col(col));
+	}
+
+	/**
 	 * {@code nullif(column, b)}, e.g. {@code NULLIF(Order::discount, 0)} &rarr;
 	 * {@code nullif(o.discount, 0)}.
 	 *
@@ -525,6 +648,20 @@ public final class Linq {
 	 */
 	public static <T> Expr NULLIF(Col<T> a, Object b) {
 		return NULLIF(Expr.col(a), b);
+	}
+
+	/**
+	 * {@code cast(column as targetType)}, e.g.
+	 * {@code CAST(Order::total, String.class)} &rarr; {@code cast(o.total as String)}.
+	 *
+	 * @param col        the column getter (method reference); must not be
+	 *                   {@code null}
+	 * @param targetType the target Java type; must not be {@code null}
+	 * @param <T>        the entity type owning the column
+	 * @return the function call as an {@link Expr}
+	 */
+	public static <T> Expr ㅤCASTㅤ(Col<T> col, Class<?> targetType) {
+		return ㅤCASTㅤ(Expr.col(col), targetType);
 	}
 
 	/**
@@ -577,6 +714,25 @@ public final class Linq {
 			return preserveEntity((EntityExpr<?>) cols[0], base);
 		}
 		return base;
+	}
+
+	/**
+	 * A {@code distinct} projection modifier for a single alias-qualified column —
+	 * shorthand for {@code DISTINCT(col(alias, col))}.
+	 *
+	 * <p>
+	 * Example: {@code DISTINCT("d", Order::customerId)} &rarr;
+	 * {@code distinct d.customerId}.
+	 * </p>
+	 *
+	 * @param alias the range-variable alias to qualify the column with; must not be
+	 *              {@code null}, e.g. {@code "d"}
+	 * @param col   the column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return the modified projection as an {@link Expr}
+	 */
+	public static <T> Expr DISTINCT(String alias, Col<T> col) {
+		return DISTINCT(col(alias, col));
 	}
 
 	private static <E> EntityExpr<E> preserveEntity(EntityExpr<E> e, Expr base) {

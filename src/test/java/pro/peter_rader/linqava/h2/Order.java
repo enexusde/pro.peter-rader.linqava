@@ -29,6 +29,7 @@ public class Order {
 	private Customer customer;
 	private String status;
 	private double total;
+	private Double discount;
 
 	@Id
 	@GeneratedValue
@@ -65,6 +66,15 @@ public class Order {
 
 	public Order setTotal(final double total) {
 		this.total = total;
+		return this;
+	}
+
+	public Double getDiscount() {
+		return discount;
+	}
+
+	public Order setDiscount(final Double discount) {
+		this.discount = discount;
 		return this;
 	}
 }

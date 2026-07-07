@@ -13,7 +13,14 @@ package pro.peter_rader.linqava;
  *
  * <p>The arithmetic operators carry Unicode glyphs that stand in for the SQL math operators (they
  * are valid Java identifiers, unlike {@code + - * /}): {@code ᐩ} (+), {@code ｰ} (-), {@code ᚷ} (*),
- * {@code ノ} (/).</p>
+ * {@code ノ} (/). The comparison glyphs {@code ㅤᆖㅤ} (=), {@code ㅤᐸㅤ} (&lt;), {@code ㅤᐳㅤ} (&gt;),
+ * {@code ᐸᆖ} (&lt;=), {@code ᐳᆖ} (&gt;=), {@code ᐸᐳ} (&lt;&gt;) are likewise available for building
+ * boolean expressions that appear in a {@code SELECT} list rather than a {@code WHERE}/
+ * {@code HAVING} predicate (see {@link Cond} for the latter); when the receiver is a
+ * {@link ScalarExpr}, these are overridden to return a {@code ScalarExpr<Boolean>}, threading
+ * {@code Boolean} through to {@link ScalarQ#via(jakarta.persistence.EntityManager)} — see
+ * {@link ScalarExpr#ㅤANDㅤ(Object)}/{@link ScalarExpr#ㅤORㅤ(Object)} for combining several of
+ * them.</p>
  */
 public abstract class Expr {
 
@@ -56,6 +63,65 @@ public abstract class Expr {
 	 * @return a new expression
 	 */
 	public Expr ノ(Object other) { return bin(this, "/", val(other)); }
+
+	// --- comparison (glyph operator, for boolean expressions in a SELECT list) ---
+
+	/**
+	 * Equality ({@code =}) as a projectable boolean expression, e.g.
+	 * {@code COUNTㅤꁘ().ㅤᆖㅤ(0)} &rarr; {@code count(*) = 0}. For {@code WHERE}/{@code HAVING}
+	 * predicates use {@link Cond}'s {@code ᆖ} instead.
+	 *
+	 * @param other the right operand (Expr/literal); must not be {@code null}
+	 * @return a new expression
+	 */
+	public Expr ㅤᆖㅤ(Object other) { return bin(this, "=", val(other)); }
+
+	/**
+	 * Less-than ({@code <}) as a projectable boolean expression, e.g.
+	 * {@code COUNTㅤꁘ().ㅤᐸㅤ(3)} &rarr; {@code count(*) < 3}. For {@code WHERE}/{@code HAVING}
+	 * predicates use {@link Cond}'s {@code ᐸ} instead.
+	 *
+	 * @param other the right operand (Expr/literal); must not be {@code null}
+	 * @return a new expression
+	 */
+	public Expr ㅤᐸㅤ(Object other) { return bin(this, "<", val(other)); }
+
+	/**
+	 * Greater-than ({@code >}) as a projectable boolean expression, e.g.
+	 * {@code COUNTㅤꁘ().ㅤᐳㅤ(1)} &rarr; {@code count(*) > 1}. For {@code WHERE}/{@code HAVING}
+	 * predicates use {@link Cond}'s {@code ᐳ} instead.
+	 *
+	 * @param other the right operand (Expr/literal); must not be {@code null}
+	 * @return a new expression
+	 */
+	public Expr ㅤᐳㅤ(Object other) { return bin(this, ">", val(other)); }
+
+	/**
+	 * Less-than-or-equal ({@code <=}) as a projectable boolean expression. For
+	 * {@code WHERE}/{@code HAVING} predicates use {@link Cond}'s {@code ᐸᆖ} instead.
+	 *
+	 * @param other the right operand (Expr/literal); must not be {@code null}
+	 * @return a new expression
+	 */
+	public Expr ᐸᆖ(Object other) { return bin(this, "<=", val(other)); }
+
+	/**
+	 * Greater-than-or-equal ({@code >=}) as a projectable boolean expression. For
+	 * {@code WHERE}/{@code HAVING} predicates use {@link Cond}'s {@code ᐳᆖ} instead.
+	 *
+	 * @param other the right operand (Expr/literal); must not be {@code null}
+	 * @return a new expression
+	 */
+	public Expr ᐳᆖ(Object other) { return bin(this, ">=", val(other)); }
+
+	/**
+	 * Not-equal ({@code <>}) as a projectable boolean expression. For
+	 * {@code WHERE}/{@code HAVING} predicates use {@link Cond}'s {@code ᐸᐳ} instead.
+	 *
+	 * @param other the right operand (Expr/literal); must not be {@code null}
+	 * @return a new expression
+	 */
+	public Expr ᐸᐳ(Object other) { return bin(this, "<>", val(other)); }
 
 	// --- ordering / windowing / aliasing ---
 

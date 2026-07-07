@@ -199,6 +199,66 @@ class CustomerSummary {
 	}
 }
 
+class TranslationStack {
+	int id() {
+		return 0;
+	}
+
+	int version() {
+		return 0;
+	}
+
+	List<TranslationKeyword> translationKeywords() {
+		return null;
+	}
+
+	List<TranslationImageKey> translationImageKeys() {
+		return null;
+	}
+}
+
+class TranslationKeyword {
+	int version() {
+		return 0;
+	}
+
+	List<TranslationValue> translationValues() {
+		return null;
+	}
+}
+
+class TranslationValue {
+	int version() {
+		return 0;
+	}
+}
+
+class TranslationImageKey {
+	int version() {
+		return 0;
+	}
+
+	List<TranslationImage> translationImages() {
+		return null;
+	}
+}
+
+class TranslationImage {
+	int version() {
+		return 0;
+	}
+}
+
+class EMailAddressLocalName {
+	long id() {
+		return 0;
+	}
+
+	String localName() {
+		return null;
+	}
+}
+
 /*
  * A fixture with real JavaBeans accessors (get/is prefixes), unlike the other demo entities above,
  * to verify that Names#property strips the prefix and decapitalizes the remainder.

@@ -8,72 +8,10 @@
 package pro.peter_rader.linqava;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static pro.peter_rader.linqava.Linq.AVG;
-import static pro.peter_rader.linqava.Linq.CASE;
-import static pro.peter_rader.linqava.Linq.COALESCE;
-import static pro.peter_rader.linqava.Linq.COUNT;
-import static pro.peter_rader.linqava.Linq.DISTINCTㅤ;
-import static pro.peter_rader.linqava.Linq.MAX;
-import static pro.peter_rader.linqava.Linq.NEW;
-import static pro.peter_rader.linqava.Linq.NULLIF;
-import static pro.peter_rader.linqava.Linq.RANK;
-import static pro.peter_rader.linqava.Linq.ROW_NUMBER;
-import static pro.peter_rader.linqava.Linq.SELECTㅤ;
-import static pro.peter_rader.linqava.Linq.SELECTㅤꁘㅤFROM;
-import static pro.peter_rader.linqava.Linq.SIZE;
-import static pro.peter_rader.linqava.Linq.SUM;
-import static pro.peter_rader.linqava.Linq.WITH;
-import static pro.peter_rader.linqava.Linq.WITHㅤRECURSIVE;
-import static pro.peter_rader.linqava.Linq.col;
-import static pro.peter_rader.linqava.Linq.lit;
-import static pro.peter_rader.linqava.Linq.param;
-import static pro.peter_rader.linqava.Linq.sub;
-import static pro.peter_rader.linqava.Linq.ㅤANDㅤ;
-import static pro.peter_rader.linqava.Linq.ㅤEXISTSㅤ;
-import static pro.peter_rader.linqava.Linq.ㅤMEMBERㅤOFㅤ;
-import static pro.peter_rader.linqava.Linq.ㅤORㅤ;
-import static pro.peter_rader.linqava.Linq.ㅤPARTITIONㅤBYㅤ;
-import static pro.peter_rader.linqava.Linq.ㅤTREATㅤ;
-import static pro.peter_rader.linqava.Linq.ㅤᆖㅤ;
-import static pro.peter_rader.linqava.Linq.ㅤᐳᆖㅤ;
-import static pro.peter_rader.linqava.Linq.ㅤᐳㅤ;
-import static pro.peter_rader.linqava.Linq.ㅤᐸᆖㅤ;
-import static pro.peter_rader.linqava.Linq.ㅤᐸㅤ;
-
-import java.lang.reflect.InvocationHandler;
-import java.lang.reflect.Proxy;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import static pro.peter_rader.linqava.Linq.*;
+;
 
 import org.junit.Test;
-
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.TypedQuery;
-import pro.peter_rader.linqava.BankTransferPayment;
-import pro.peter_rader.linqava.Car;
-import pro.peter_rader.linqava.Category;
-import pro.peter_rader.linqava.Cond;
-import pro.peter_rader.linqava.CreditCardPayment;
-import pro.peter_rader.linqava.Customer;
-import pro.peter_rader.linqava.CustomerSummary;
-import pro.peter_rader.linqava.Driver;
-import pro.peter_rader.linqava.Employee;
-import pro.peter_rader.linqava.Linq;
-import pro.peter_rader.linqava.Order;
-import pro.peter_rader.linqava.OrderItem;
-import pro.peter_rader.linqava.Payment;
-import pro.peter_rader.linqava.Product;
-import pro.peter_rader.linqava.Q;
-import pro.peter_rader.linqava.SerialPlate;
-import pro.peter_rader.linqava.Supplier;
-import pro.peter_rader.linqava.User;
 
 /**
  * Verifies that the HQL produced by {@link Q#getHql()} is correct for each
@@ -438,5 +376,115 @@ public class QueryTest {
 		Q<Car> q = SELECTㅤ(Car.class).ㅤFROMㅤ(Car.class).ㅤAS("c").ㅤWHEREㅤ("c", Car::driver).ㅤᐅㅤ(Driver::id).ㅤᐳㅤ(0)
 				.ㅤANDㅤ("c", Car::plate).ㅤᐅㅤ(SerialPlate::id).ㅤᐳㅤ(0);
 		assertEquals("select c from Car c where c.driver.id > 0 and c.plate.id > 0", q.getHql());
+	}
+
+	// SELECT COUNT(*) = 0 FROM Order — comparing a ScalarExpr threads Boolean through to ScalarQ<Boolean>
+	@Test
+	public void testCountStarEqualsZero() {
+		ScalarQ<Boolean> q = SELECTㅤ(COUNTㅤꁘ().ㅤᆖㅤ(0)).ㅤFROMㅤ(Order.class);
+		assertEquals("select count(*) = 0 from Order", q.getHql());
+	}
+
+	// SELECT COUNT(*) = COUNT(o.id) FROM Order o
+	@Test
+	public void testCountStarEqualsExpressionOperand() {
+		ScalarQ<Boolean> q = SELECTㅤ(COUNTㅤꁘ().ㅤᆖㅤ(COUNT(Order::id))).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		assertEquals("select count(*) = count(o.id) from Order o", q.getHql());
+	}
+
+	// SELECT MAX(ti.version), MAX(ik.version), MAX(s.version), MAX(kw.version), MAX(tv.version) FROM
+	// TranslationStack s LEFT JOIN s.translationKeywords kw LEFT JOIN kw.translationValues tv
+	// LEFT JOIN s.translationImageKeys ik LEFT JOIN ik.translationImages ti WHERE s.id = :sid
+	@Test
+	public void testMaxVersionAcrossNestedLeftJoinedAssociations() {
+		Q<Object> q = SELECTㅤ(MAX(col("ti", TranslationImage::version)), MAX(col("ik", TranslationImageKey::version)),
+				MAX(col("s", TranslationStack::version)), MAX(col("kw", TranslationKeyword::version)),
+				MAX(col("tv", TranslationValue::version))).ㅤFROMㅤ(TranslationStack.class).ㅤAS("s")
+				.LEFTㅤJOIN(TranslationStack::translationKeywords).ㅤAS("kw")
+				.LEFTㅤJOIN(col("kw", TranslationKeyword::translationValues)).ㅤAS("tv")
+				.LEFTㅤJOIN(TranslationStack::translationImageKeys).ㅤAS("ik")
+				.LEFTㅤJOIN(col("ik", TranslationImageKey::translationImages)).ㅤAS("ti")
+				.ㅤWHEREㅤ(TranslationStack::id).ㅤᆖㅤ(param("sid"));
+		assertEquals("select max(ti.version), max(ik.version), max(s.version), max(kw.version), max(tv.version) "
+				+ "from TranslationStack s left join s.translationKeywords kw "
+				+ "left join kw.translationValues tv left join s.translationImageKeys ik "
+				+ "left join ik.translationImages ti where s.id = :sid", q.getHql());
+	}
+
+	// SELECT COUNT(*) FROM Order — bare COUNT(*) threads Long through to ScalarQ<Long>
+	@Test
+	public void testCountStarAloneThreadsLongType() {
+		ScalarQ<Long> q = SELECTㅤ(COUNTㅤꁘ()).ㅤFROMㅤ(Order.class);
+		assertEquals("select count(*) from Order", q.getHql());
+	}
+
+	// SELECT COUNT(*) > 1 AND COUNT(*) < 1 AS x FROM Order WHERE customerId = 1 AND status IS NOT NULL
+	// — every comparison/combinator/alias on a ScalarExpr threads Boolean through to ScalarQ<Boolean>
+	@Test
+	public void testBooleanCombinationOfCountComparisonsThreadsBooleanType() {
+		ScalarQ<Boolean> q = SELECTㅤ(COUNTㅤꁘ().ㅤᐳㅤ(1).ㅤANDㅤ(COUNTㅤꁘ()).ㅤᐸㅤ(1).ㅤAS("x")).ㅤFROMㅤ(Order.class)
+				.ㅤWHEREㅤ(Order::customerId).ㅤᆖㅤ(1).ㅤANDㅤ(Order::status).ISㅤNOTㅤNULL();
+		assertEquals("select count(*) > 1 and count(*) < 1 as x from Order "
+				+ "where customerId = 1 and status is not null", q.getHql());
+	}
+
+	// SELECT a.id, b.id FROM EMailAddressLocalName a JOIN EMailAddressLocalName b
+	// ON (LOWER(a.localName) <> b.localName AND a.localName = b.localName AND a.id <> b.id)
+	// WHERE b.id IS NOT NULL — a self-join, disambiguated via alias-qualified columns on both sides
+	@Test
+	public void testSelfJoinWithCompoundOnConditionAndLower() {
+		Q<Object> q = SELECTㅤ(col("a", EMailAddressLocalName::id), col("b", EMailAddressLocalName::id))
+				.ㅤFROMㅤ(EMailAddressLocalName.class).ㅤAS("a").JOIN(EMailAddressLocalName.class).ㅤAS("b")
+				.ㅤONㅤ(ㅤANDㅤ(
+						ㅤᐸᐳㅤ(LOWER(col("a", EMailAddressLocalName::localName)), col("b", EMailAddressLocalName::localName)),
+						ㅤᆖㅤ(col("a", EMailAddressLocalName::localName), col("b", EMailAddressLocalName::localName)),
+						ㅤᐸᐳㅤ(col("a", EMailAddressLocalName::id), col("b", EMailAddressLocalName::id))))
+				.ㅤWHEREㅤ(col("b", EMailAddressLocalName::id)).ISㅤNOTㅤNULL();
+		assertEquals("select a.id, b.id from EMailAddressLocalName a join EMailAddressLocalName b "
+				+ "on (lower(a.localName) <> b.localName and a.localName = b.localName and a.id <> b.id) "
+				+ "where b.id is not null", q.getHql());
+	}
+
+	// SELECT o FROM Order o ORDER BY o.total DESC LIMIT 10 OFFSET 20
+	@Test
+	public void testLimitAndOffset() {
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤORDERㅤBYㅤ(col(Order::total).DESC())
+				.LIMIT(10).OFFSET(20);
+		assertEquals("select o from Order o order by o.total desc limit 10 offset 20", q.getHql());
+	}
+
+	// FROM Order ORDER BY total LIMIT 5 OFFSET 10 (EntityQ shorthand)
+	@Test
+	public void testEntityQLimitAndOffset() {
+		EntityQ<Order> q = SELECTㅤꁘㅤFROM(Order.class).ㅤORDERㅤBYㅤ(Order::total).LIMIT(5).OFFSET(10);
+		assertEquals("from Order order by total limit 5 offset 10", q.getHql());
+	}
+
+	// SELECT LOWER(o.status), UPPER(o.status) FROM Order o
+	@Test
+	public void testLowerAndUpperColOverloads() {
+		Q<Object> q = SELECTㅤ(LOWER(Order::status), UPPER(Order::status)).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		assertEquals("select lower(o.status), upper(o.status) from Order o", q.getHql());
+	}
+
+	// SELECT CAST(o.total AS String) FROM Order o
+	@Test
+	public void testCastColOverload() {
+		Q<Object> q = SELECTㅤ(ㅤCASTㅤ(Order::total, String.class)).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		assertEquals("select cast(o.total as String) from Order o", q.getHql());
+	}
+
+	// SELECT CAST(COUNT(o.id) AS String) FROM Order o
+	@Test
+	public void testCastOfExpressionOperand() {
+		Q<Object> q = SELECTㅤ(ㅤCASTㅤ(COUNT(Order::id), String.class)).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		assertEquals("select cast(count(o.id) as String) from Order o", q.getHql());
+	}
+
+	// SELECT DISTINCT o.customerId FROM Order o — DISTINCT(alias, Col) shorthand for DISTINCT(col(alias, Col))
+	@Test
+	public void testDistinctAliasColShorthand() {
+		Q<Object> q = SELECTㅤ(DISTINCT("o", Order::customerId)).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		assertEquals("select distinct o.customerId from Order o", q.getHql());
 	}
 }

@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.FlushModeType;
 import jakarta.persistence.TypedQuery;
 
 /**
@@ -85,6 +86,9 @@ public final class Q<E> {
 	private final List<Expr> groupBy = new ArrayList<>();
 	private Expr having;
 	private final List<Expr> orderBy = new ArrayList<>();
+	private Expr limit;
+	private Expr offset;
+	private FlushModeType flushMode;
 	private Q<?> unionAll;
 	private Class<E> entityType;
 
@@ -180,6 +184,24 @@ public final class Q<E> {
 	}
 
 	/**
+	 * Inner-joins along an alias-qualified association path ({@code join alias.assoc}) — the
+	 * counterpart to {@link #JOIN(Col) JOIN(Col)} for a path whose owner is not the query's root but
+	 * a previously joined alias (so its entity type carries no queryable alias of its own).
+	 *
+	 * <p>
+	 * Example: {@code JOIN(col("kw", TranslationKeyword::translationValues)).AS("tv")} &rarr;
+	 * {@code join kw.translationValues tv}.
+	 * </p>
+	 *
+	 * @param path the alias-qualified path, typically {@link Linq#col(String, Col)}; must not be
+	 *             {@code null}
+	 * @return this builder, for chaining
+	 */
+	public Q<E> JOIN(Object path) {
+		return addJoin("join", src(null, false, Expr.val(path)));
+	}
+
+	/**
 	 * Left-outer-joins an entity ({@code left join Entity}).
 	 *
 	 * @param entity the joined entity class; must not be {@code null}
@@ -209,6 +231,25 @@ public final class Q<E> {
 	 */
 	public <T> Q<E> LEFTㅤJOIN(Col<T> path) {
 		return addJoin("left join", src(null, false, pathExpr(path)));
+	}
+
+	/**
+	 * Left-outer-joins along an alias-qualified association path ({@code left join alias.assoc}) —
+	 * the counterpart to {@link #LEFTㅤJOIN(Col) LEFT JOIN(Col)} for a path whose owner is not the
+	 * query's root but a previously joined alias (so its entity type carries no queryable alias of
+	 * its own).
+	 *
+	 * <p>
+	 * Example: {@code LEFTㅤJOIN(col("kw", TranslationKeyword::translationValues)).AS("tv")} &rarr;
+	 * {@code left join kw.translationValues tv}.
+	 * </p>
+	 *
+	 * @param path the alias-qualified path, typically {@link Linq#col(String, Col)}; must not be
+	 *             {@code null}
+	 * @return this builder, for chaining
+	 */
+	public Q<E> LEFTㅤJOIN(Object path) {
+		return addJoin("left join", src(null, false, Expr.val(path)));
 	}
 
 	/**
@@ -449,10 +490,20 @@ public final class Q<E> {
 	}
 
 	private WhereStep<Q<E>> where(Expr left, String leftHint, String connector) {
-		return new WhereStep<>(left, leftHint, connector, (predicate, conn) -> {
-			where = (where == null) ? predicate : Expr.bin(where, conn, predicate);
-			return this;
-		});
+		return new WhereStep<>(left, leftHint, connector, (predicate, conn) -> appendWhere(predicate, conn));
+	}
+
+	/**
+	 * Folds a finished predicate into the {@code where} clause, joined with
+	 * {@code connector} if one is already present. Package-private: reused by
+	 * {@link #where(Expr, String, String)} above and by {@link ScalarQ}'s own
+	 * {@code WHERE}/{@code AND}/{@code OR} entry points, which build their own
+	 * {@link WhereStep} (typed to keep their fluent chain on {@code ScalarQ}
+	 * instead of {@code Q}) but still need to mutate this same underlying clause.
+	 */
+	Q<E> appendWhere(Expr predicate, String connector) {
+		where = (where == null) ? predicate : Expr.bin(where, connector, predicate);
+		return this;
 	}
 
 	/**
@@ -575,6 +626,59 @@ public final class Q<E> {
 	}
 
 	/**
+	 * The {@code limit} clause, capping the number of returned rows.
+	 *
+	 * <p>
+	 * Example: {@code ORDERㅤBY(Order::total).DESC().LIMIT(10)} &rarr;
+	 * {@code order by o.total desc limit 10}.
+	 * </p>
+	 *
+	 * @param maxResults the maximum number of rows to return; must not be negative
+	 * @return this builder, for chaining
+	 */
+	public Q<E> LIMIT(int maxResults) {
+		limit = Expr.val(maxResults, "limit");
+		return this;
+	}
+
+	/**
+	 * The {@code offset} clause, skipping this many rows before the first returned
+	 * row — typically combined with {@link #LIMIT(int)} for pagination.
+	 *
+	 * <p>
+	 * Example: {@code ORDERㅤBY(Order::total).LIMIT(10).OFFSET(20)} &rarr;
+	 * {@code order by o.total limit 10 offset 20}.
+	 * </p>
+	 *
+	 * @param firstResult the zero-based index of the first row to return; must not
+	 *                    be negative
+	 * @return this builder, for chaining
+	 */
+	public Q<E> OFFSET(int firstResult) {
+		offset = Expr.val(firstResult, "offset");
+		return this;
+	}
+
+	/**
+	 * Overrides the {@link TypedQuery}'s flush mode for every {@code via}/{@code first} call on this
+	 * query (all of them ultimately create their {@link TypedQuery} through {@link #via(EntityManager)}
+	 * or {@link #via(EntityManager, Class)}), instead of leaving it at the persistence context's
+	 * default.
+	 *
+	 * <p>
+	 * Example: {@code SELECT(Order.class).FROM(Order.class).AS("o").FLUSHㅤMODE(FlushModeType.COMMIT)}
+	 * &rarr; skips the implicit flush this query would otherwise trigger for pending changes.
+	 * </p>
+	 *
+	 * @param mode the flush mode to apply; must not be {@code null}
+	 * @return this builder, for chaining
+	 */
+	public Q<E> FLUSHㅤMODE(FlushModeType mode) {
+		flushMode = Objects.requireNonNull(mode, "mode");
+		return this;
+	}
+
+	/**
 	 * Appends a {@code union all} with another query.
 	 *
 	 * <p>
@@ -673,6 +777,12 @@ public final class Q<E> {
 		if (!orderBy.isEmpty()) {
 			sb.append(" order by ").append(Expr.list(ctx, orderBy.toArray()));
 		}
+		if (limit != null) {
+			sb.append(" limit ").append(limit.render(ctx));
+		}
+		if (offset != null) {
+			sb.append(" offset ").append(offset.render(ctx));
+		}
 
 		String hql = sb.toString();
 		if (unionAll != null) {
@@ -687,12 +797,14 @@ public final class Q<E> {
 	 * {@code SELECT} list is a single whole-entity selection —
 	 * {@link Linq#SELECTㅤ(Class)} or {@link Linq#DISTINCTㅤ(Class)}. The selected
 	 * type {@code E} is threaded through from that call, so no cast is needed here
-	 * or at the call site.
+	 * or at the call site. For a single scalar/aggregate whose Java type is
+	 * statically known (e.g. {@link Linq#COUNTㅤꁘ()}), the query is a
+	 * {@link ScalarQ} instead — see {@link ScalarQ#via(EntityManager)}.
 	 *
 	 * <p>
 	 * Example:
 	 * </p>
-	 * 
+	 *
 	 * <pre>{@code
 	 * Q<Order> q = SELECT(Order.class).FROM(Order.class).AS("o"); // "select o from Order o"
 	 * List<Order> orders = q.via(entityManager);
@@ -724,25 +836,88 @@ public final class Q<E> {
 					+ "e.g. SELECT(entity(Order.class)); for projections use em.createQuery(getHql())");
 		}
 		ParamCollector collector = new ParamCollector();
-		TypedQuery<E> tq = em.createQuery(hqlFor(collector), entityType);
-		for (Map.Entry<String, Object> e : collector.params().entrySet()) {
-			tq.setParameter(e.getKey(), e.getValue());
+		String hql = hqlFor(collector);
+		try {
+			TypedQuery<E> tq = em.createQuery(hql, entityType);
+			if (flushMode != null) {
+				tq.setFlushMode(flushMode);
+			}
+			for (Map.Entry<String, Object> e : collector.params().entrySet()) {
+				tq.setParameter(e.getKey(), e.getValue());
+			}
+			return tq.getResultList();
+		} catch (RuntimeException e) {
+			throw new RuntimeException(hql, e);
 		}
-		return tq.getResultList();
 	}
 
 	/**
-	 * Like {@link #via(EntityManager)}, but if the query yields no results, obtains a
-	 * new candidate entity from {@code fallbackPersist}, persists it (unless it is
-	 * {@code null}) and returns it instead.
+	 * Executes this query as a typed scalar/tuple/DTO projection and returns its
+	 * result list — the counterpart to {@link #via(EntityManager)} for queries that
+	 * select individual fields and/or aggregates instead of a whole entity.
+	 *
+	 * <p>
+	 * {@code resultType} is passed straight through to
+	 * {@link EntityManager#createQuery(String, Class)}, so its shape must match the
+	 * {@code SELECT} list:
+	 * </p>
+	 * <ul>
+	 * <li>a single scalar/aggregate column (e.g.
+	 * {@code SELECT(COUNT(Order::id))}) &rarr; a wrapper type such as
+	 * {@code Long.class};</li>
+	 * <li>several columns/aggregates (e.g.
+	 * {@code SELECT(col(Order::customerId), COUNT(Order::id))
+	 * .GROUP‿BY(Order::customerId)}) &rarr; {@code Object[].class}, one array per
+	 * row;</li>
+	 * <li>a {@link Linq#NEW(Class, Object...) NEW(Dto.class, ...)} constructor
+	 * projection &rarr; the DTO class itself.</li>
+	 * </ul>
+	 *
+	 * <p>
+	 * Like {@link #via(EntityManager)}, every literal value in the query is bound
+	 * as a {@code :name} parameter instead of being inlined into the HQL text.
+	 * </p>
+	 *
+	 * @param em         the JPA entity manager used to create and run the query;
+	 *                   must not be {@code null}
+	 * @param resultType the expected shape of each result row; must not be
+	 *                   {@code null}
+	 * @param <T>        the result row type
+	 * @return the (possibly empty) list of projected rows; never {@code null}
+	 * @throws NullPointerException if {@code em} or {@code resultType} is
+	 *                              {@code null}
+	 */
+	public <T> List<T> via(EntityManager em, Class<T> resultType) {
+		Objects.requireNonNull(em, "em");
+		Objects.requireNonNull(resultType, "resultType");
+		ParamCollector collector = new ParamCollector();
+		String hql = hqlFor(collector);
+		try {
+			TypedQuery<T> tq = em.createQuery(hql, resultType);
+			if (flushMode != null) {
+				tq.setFlushMode(flushMode);
+			}
+			for (Map.Entry<String, Object> e : collector.params().entrySet()) {
+				tq.setParameter(e.getKey(), e.getValue());
+			}
+			return tq.getResultList();
+		} catch (RuntimeException e) {
+			throw new RuntimeException(hql, e);
+		}
+	}
+
+	/**
+	 * Like {@link #via(EntityManager)}, but if the query yields no results, obtains
+	 * a new candidate entity from {@code fallbackPersist}, persists it (unless it
+	 * is {@code null}) and returns it instead.
 	 *
 	 * @see #via(EntityManager)
 	 * @param em              The entity-manager, never <code>null</code>
 	 * @param fallbackPersist The fill-method for the new candidate, never
 	 *                        <code>null</code>
-	 * @return the query result, or a singleton with the persisted fallback entity if
-	 *         the query found nothing and the fallback produced one; an empty set if
-	 *         the query found nothing and the fallback returned {@code null}
+	 * @return the query result, or a singleton with the persisted fallback entity
+	 *         if the query found nothing and the fallback produced one; an empty
+	 *         set if the query found nothing and the fallback returned {@code null}
 	 */
 	public Iterable<E> via(EntityManager em, java.util.function.Supplier<E> fallbackPersist) {
 		Iterable<E> x = via(em);
