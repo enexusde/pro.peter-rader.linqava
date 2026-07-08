@@ -263,8 +263,10 @@ public final class Linq {
 	public static <T1> SelectStep<Object> SELECTㅤ(
 			TypedCol<T1, ?> first, String firstAlias,
 			Object... rest) {
-		return new SelectStep<>(new Q<Object>().addSelect(
-				Expr.typedCol(first).ㅤAS(firstAlias)));
+		Object[] args = new Object[rest.length + 1];
+		args[0] = Expr.typedCol(first).ㅤAS(firstAlias);
+		System.arraycopy(rest, 0, args, 1, rest.length);
+		return new SelectStep<>(new Q<Object>().addSelect(args));
 	}
 
 	/**
@@ -308,9 +310,11 @@ public final class Linq {
 			TypedCol<T1, ?> first, String firstAlias,
 			TypedCol<T2, ?> second, String secondAlias,
 			Object... rest) {
-		return new SelectStep<>(new Q<Object>().addSelect(
-				Expr.typedCol(first).ㅤAS(firstAlias),
-				Expr.typedCol(second).ㅤAS(secondAlias)));
+		Object[] args = new Object[rest.length + 2];
+		args[0] = Expr.typedCol(first).ㅤAS(firstAlias);
+		args[1] = Expr.typedCol(second).ㅤAS(secondAlias);
+		System.arraycopy(rest, 0, args, 2, rest.length);
+		return new SelectStep<>(new Q<Object>().addSelect(args));
 	}
 
 	/**
@@ -363,10 +367,12 @@ public final class Linq {
 			TypedCol<T2, ?> second, String secondAlias,
 			TypedCol<T3, ?> third, String thirdAlias,
 			Object... rest) {
-		return new SelectStep<>(new Q<Object>().addSelect(
-				Expr.typedCol(first).ㅤAS(firstAlias),
-				Expr.typedCol(second).ㅤAS(secondAlias),
-				Expr.typedCol(third).ㅤAS(thirdAlias)));
+		Object[] args = new Object[rest.length + 3];
+		args[0] = Expr.typedCol(first).ㅤAS(firstAlias);
+		args[1] = Expr.typedCol(second).ㅤAS(secondAlias);
+		args[2] = Expr.typedCol(third).ㅤAS(thirdAlias);
+		System.arraycopy(rest, 0, args, 3, rest.length);
+		return new SelectStep<>(new Q<Object>().addSelect(args));
 	}
 
 	/**
@@ -1886,9 +1892,9 @@ public final class Linq {
 	}
 
 	/**
-	 * Addition ({@code +}) of two bare getter references, e.g. {@code ᐩ(Order::total, Order::discount)}
+	 * Addition ({@code +}) of two bare getter references, e.g. {@code 十(Order::total, Order::discount)}
 	 * &rarr; {@code o.total + o.discount} — for starting an arithmetic expression from two columns
-	 * without an {@link Expr} receiver to chain {@link Expr#ᐩ(Object)} onto.
+	 * without an {@link Expr} receiver to chain {@link Expr#十(Object)} onto.
 	 *
 	 * @param left  the left column getter (method reference); must not be {@code null}
 	 * @param right the right column getter (method reference); must not be {@code null}
@@ -1896,13 +1902,13 @@ public final class Linq {
 	 * @param <R>   the entity type owning the right column
 	 * @return the sum as an {@link Expr}
 	 */
-	public static <T, R> Expr ᐩ(TypedCol<T, ?> left, TypedCol<R, ?> right) {
-		return Expr.typedCol(left).ᐩ(right);
+	public static <T, R> Expr 十(TypedCol<T, ?> left, TypedCol<R, ?> right) {
+		return Expr.typedCol(left).十(right);
 	}
 
 	/**
 	 * Addition ({@code +}) starting from a column referenced by raw alias and field name, e.g.
-	 * {@code ᐩ("h", "depth", 1)} &rarr; {@code h.depth + 1} — for a derived/CTE column (typically a
+	 * {@code 十("h", "depth", 1)} &rarr; {@code h.depth + 1} — for a derived/CTE column (typically a
 	 * recursive CTE's own result, referenced arithmetically in its recursive step) that has no
 	 * entity getter.
 	 *
@@ -1911,8 +1917,8 @@ public final class Linq {
 	 * @param right the right operand (Expr/literal); must not be {@code null}
 	 * @return the sum as an {@link Expr}
 	 */
-	public static Expr ᐩ(String alias, String field, Object right) {
-		return typedCol(alias, field).ᐩ(right);
+	public static Expr 十(String alias, String field, Object right) {
+		return typedCol(alias, field).十(right);
 	}
 
 	// ===== aggregate / scalar functions =====

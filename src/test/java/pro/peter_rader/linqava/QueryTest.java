@@ -39,7 +39,7 @@ import org.junit.Test;
  * {@code WHERE(User::Name).ᆖ("John")}; chain further predicates with
  * {@code .AND(col)}/{@code .OR(col)}. Operator glyphs: {@code ᆖ} (=), {@code ᐸ}
  * (&lt;), {@code ᐳ} (&gt;), {@code ᐸᆖ} (&lt;=), {@code ᐳᆖ} (&gt;=), {@code ᐸᐳ}
- * (&lt;&gt;); math: {@code ᐩ} (+), {@code ｰ} (-), {@code ᚷ} (*), {@code ノ} (/).
+ * (&lt;&gt;); math: {@code 十} (+), {@code ｰ} (-), {@code ᚷ} (*), {@code ノ} (/).
  * For nested/grouped boolean trees or predicates that don't start from a single
  * column (e.g. {@code EXISTS}, {@code MEMBERㅤOF}), build a {@link Cond} from
  * {@link Linq}'s static predicate functions and pass it directly, e.g.
@@ -178,7 +178,7 @@ public class QueryTest {
 				SELECTㅤ(Employee::id, "id", Employee::managerId, "managerId", lit(0).ㅤAS("depth"))
 						.ㅤFROMㅤ(Employee.class).ㅤAS("e").ㅤWHEREㅤ(Employee::managerId).ISㅤNULL()
 						.UNIONㅤALL(SELECTㅤ(Employee::id, "id", Employee::managerId, "managerId",
-								ᐩ("h", "depth", 1).ㅤAS("depth")).ㅤFROMㅤ(Employee.class).ㅤAS("e")
+								十("h", "depth", 1).ㅤAS("depth")).ㅤFROMㅤ(Employee.class).ㅤAS("e")
 								.JOIN("empHierarchy").ㅤAS("h").ㅤONㅤ(Employee::managerId).ㅤᆖㅤ("h", "id")))
 				.SELECTㅤ("h", "id", "h", "depth").FROM("empHierarchy").ㅤAS("h")
 				.ㅤORDERㅤBYㅤ("h", "depth", "h", "id");
@@ -536,7 +536,7 @@ public class QueryTest {
 	// SELECT o.total + o.discount FROM Order o — Expr arithmetic against a bare column, no typedCol() needed
 	@Test
 	public void testExprArithmeticWithBareColOperand() {
-		Q<Object> q = SELECTㅤ(ᐩ(Order::total, Order::discount)).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Q<Object> q = SELECTㅤ(十(Order::total, Order::discount)).ㅤFROMㅤ(Order.class).ㅤAS("o");
 		assertEquals("select o.total + o.discount from pro.peter_rader.linqava.Order o", q.getUnsafeHql());
 	}
 

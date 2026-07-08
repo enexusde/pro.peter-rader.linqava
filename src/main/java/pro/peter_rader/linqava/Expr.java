@@ -12,7 +12,7 @@ package pro.peter_rader.linqava;
  * Every node knows how to render itself to HQL given a {@link RenderCtx}.
  *
  * <p>The arithmetic operators carry Unicode glyphs that stand in for the SQL math operators (they
- * are valid Java identifiers, unlike {@code + - * /}): {@code ᐩ} (+), {@code ｰ} (-), {@code ᚷ} (*),
+ * are valid Java identifiers, unlike {@code + - * /}): {@code 十} (+), {@code ｰ} (-), {@code ᚷ} (*),
  * {@code ノ} (/). The comparison glyphs {@code ㅤᆖㅤ} (=), {@code ㅤᐸㅤ} (&lt;), {@code ㅤᐳㅤ} (&gt;),
  * {@code ᐸᆖ} (&lt;=), {@code ᐳᆖ} (&gt;=), {@code ᐸᐳ} (&lt;&gt;) are likewise available for building
  * boolean expressions that appear in a {@code SELECT} list rather than a {@code WHERE}/
@@ -33,23 +33,23 @@ public abstract class Expr {
 	// --- arithmetic (glyph operators) ---
 
 	/**
-	 * Addition ({@code +}), e.g. {@code typedCol(Order::getTotal).ᐩ(1)} &rarr; {@code o.total + 1}.
+	 * Addition ({@code +}), e.g. {@code typedCol(Order::getTotal).十(1)} &rarr; {@code o.total + 1}.
 	 *
 	 * @param other the right operand (Expr/literal); must not be {@code null}
 	 * @return a new expression
 	 */
-	public Expr ᐩ(Object other) { return bin(this, "+", val(other)); }
+	public Expr 十(Object other) { return bin(this, "+", val(other)); }
 
 	/**
 	 * Addition ({@code +}) against a bare column reference, e.g.
-	 * {@code typedCol(Order::getTotal).ᐩ(Order::getDiscount)} &rarr; {@code o.total + o.discount} —
+	 * {@code typedCol(Order::getTotal).十(Order::getDiscount)} &rarr; {@code o.total + o.discount} —
 	 * no {@link Linq#typedCol(TypedCol) typedCol(...)} wrapping needed for the right operand.
 	 *
 	 * @param other the right operand's column getter (method reference); must not be {@code null}
 	 * @param <T>   the entity type owning the column
 	 * @return a new expression
 	 */
-	public <T> Expr ᐩ(TypedCol<T, ?> other) { return ᐩ(typedCol(other)); }
+	public <T> Expr 十(TypedCol<T, ?> other) { return 十(typedCol(other)); }
 
 	/**
 	 * Subtraction ({@code -}).
@@ -60,7 +60,7 @@ public abstract class Expr {
 	public Expr ｰ(Object other) { return bin(this, "-", val(other)); }
 
 	/**
-	 * Subtraction ({@code -}) against a bare column reference — see {@link #ᐩ(TypedCol)}.
+	 * Subtraction ({@code -}) against a bare column reference — see {@link #十(TypedCol)}.
 	 *
 	 * @param other the right operand's column getter (method reference); must not be {@code null}
 	 * @param <T>   the entity type owning the column
@@ -77,7 +77,7 @@ public abstract class Expr {
 	public Expr ᚷ(Object other) { return bin(this, "*", val(other)); }
 
 	/**
-	 * Multiplication ({@code *}) against a bare column reference — see {@link #ᐩ(TypedCol)}.
+	 * Multiplication ({@code *}) against a bare column reference — see {@link #十(TypedCol)}.
 	 *
 	 * @param other the right operand's column getter (method reference); must not be {@code null}
 	 * @param <T>   the entity type owning the column
@@ -94,7 +94,7 @@ public abstract class Expr {
 	public Expr ノ(Object other) { return bin(this, "/", val(other)); }
 
 	/**
-	 * Division ({@code /}) against a bare column reference — see {@link #ᐩ(TypedCol)}.
+	 * Division ({@code /}) against a bare column reference — see {@link #十(TypedCol)}.
 	 *
 	 * @param other the right operand's column getter (method reference); must not be {@code null}
 	 * @param <T>   the entity type owning the column

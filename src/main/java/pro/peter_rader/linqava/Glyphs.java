@@ -24,7 +24,7 @@ package pro.peter_rader.linqava;
  *   <tr><td>&lt;=</td><td>ᐸᆖ</td><td>U+1438 U+4E8C</td><td>(&lt; followed by =)</td><td>Lo</td></tr>
  *   <tr><td>&gt;=</td><td>ᐳᆖ</td><td>U+1433 U+4E8C</td><td>(&gt; followed by =)</td><td>Lo</td></tr>
  *   <tr><td>&lt;&gt;</td><td>ᐸᐳ</td><td>U+1438 U+1433</td><td>(&lt; followed by &gt;)</td><td>Lo</td></tr>
- *   <tr><td>+</td>  <td>ᐩ</td><td>U+1429</td><td>CANADIAN SYLLABICS FINAL PLUS</td><td>Lo</td></tr>
+ *   <tr><td>+</td>  <td>十</td><td>U+1429</td><td>CANADIAN SYLLABICS FINAL PLUS</td><td>Lo</td></tr>
  *   <tr><td>-</td>  <td>ｰ</td><td>U+FF70</td><td>HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK</td><td>Lm</td></tr>
  *   <tr><td>*</td>  <td>ᚷ</td><td>U+16B7</td><td>RUNIC LETTER GEBO GYFU</td><td>Lo</td></tr>
  *   <tr><td>/</td>  <td>ノ</td><td>U+30CE</td><td>KATAKANA LETTER NO</td><td>Lo</td></tr>
@@ -52,7 +52,7 @@ public final class Glyphs {
 	/** Glyph for {@code <>} (U+1438 U+1433). */
 	public static final String NE  = "ᐸᐳ";
 	/** Glyph for {@code +} (U+1429). */
-	public static final String ADD = "ᐩ";
+	public static final String ADD = "十";
 	/** Glyph for {@code -} (U+FF70). */
 	public static final String SUB = "ｰ";
 	/** Glyph for {@code *} (U+16B7). */
