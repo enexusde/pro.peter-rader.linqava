@@ -340,7 +340,7 @@ public abstract class Expr {
 	/**
 	 * A literal value. Renders as a {@code :name} bind parameter when the active {@link RenderCtx}
 	 * carries a {@link ParamCollector} (i.e. while {@link Q#via} builds its parameterized query) and
-	 * the value isn't {@code null}; otherwise renders inline exactly like {@code getHql()} always has
+	 * the value isn't {@code null}; otherwise renders inline exactly like {@code getUnsafeHql()} always has
 	 * (quoted for {@link String}, verbatim via {@link String#valueOf(Object)} otherwise — {@code null}
 	 * always renders as the SQL {@code null} literal). {@code hint}, when non-{@code null}, names the
 	 * invented bind parameter after the compared-against column instead of a bare counter.

@@ -20,13 +20,13 @@ package pro.peter_rader.linqava;
  * Q<?> q = SELECT(typedCol(User::id))
  *           .FROM(User.class)
  *           .WHERE(User::Name).ᆖ("John");
- * q.getHql(); // "select id from User where Name = 'John'"
+ * q.getUnsafeHql(); // "select id from User where Name = 'John'"
  * }</pre>
  *
  * <p>
  * General null policy: unless a method explicitly states otherwise, no argument
  * may be {@code null}; passing {@code null} throws {@link NullPointerException}
- * either immediately or when {@link Q#getHql()} is called. The documented
+ * either immediately or when {@link Q#getUnsafeHql()} is called. The documented
  * exception is {@link #lit(Object)}, where {@code null} is rendered as the SQL
  * {@code null} literal.
  * </p>
@@ -1075,7 +1075,7 @@ public final class Linq {
 	 * @return the sub-query as an {@link Expr}
 	 */
 	public static Expr sub(Q subquery) {
-		return Expr.of(ctx -> "(" + subquery.getHql() + ")");
+		return Expr.of(ctx -> "(" + subquery.getUnsafeHql() + ")");
 	}
 
 	/**
@@ -1086,7 +1086,7 @@ public final class Linq {
 	 * @return the sub-query as an {@link Expr}
 	 */
 	public static Expr sub(Grouped<?> subquery) {
-		return Expr.of(ctx -> "(" + subquery.getHql() + ")");
+		return Expr.of(ctx -> "(" + subquery.getUnsafeHql() + ")");
 	}
 
 	// ===== aggregate / scalar functions =====

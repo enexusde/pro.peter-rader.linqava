@@ -105,7 +105,7 @@ public class H2IntegrationTest {
 		em.flush();
 
 		Q<Object> q = SELECTㅤ(Order::getId, "id", Order::getStatus, "status").ㅤFROMㅤ(Order.class);
-		assertEquals("select id as id, status as status from Order", q.getHql());
+		assertEquals("select id as id, status as status from Order", q.getUnsafeHql());
 
 		List<Object[]> rows = q.via(em, Object[].class);
 
@@ -233,7 +233,7 @@ public class H2IntegrationTest {
 		em.flush();
 
 		EntityQ<Order> q = SELECTㅤꁘㅤFROM(Order.class).ㅤORDERㅤBYㅤ(Order::getTotal).LIMIT(2).OFFSET(1);
-		assertEquals("from Order order by total limit 2 offset 1", q.getHql());
+		assertEquals("from Order order by total limit 2 offset 1", q.getUnsafeHql());
 
 		List<Order> page = toList(q.via(em));
 
@@ -254,7 +254,7 @@ public class H2IntegrationTest {
 
 		Q<Object> q = SELECTㅤ(ㅤCASTㅤ(Order::getTotal, String.class)).ㅤFROMㅤ(Order.class).ㅤAS("o")
 				.ㅤWHEREㅤ(Order::getStatus).ㅤᆖㅤ("PAID");
-		assertEquals("select cast(o.total as String) from Order o where o.status = 'PAID'", q.getHql());
+		assertEquals("select cast(o.total as String) from Order o where o.status = 'PAID'", q.getUnsafeHql());
 
 		List<String> results = q.via(em, String.class);
 
@@ -272,7 +272,7 @@ public class H2IntegrationTest {
 		em.flush();
 
 		Q<Object> q = SELECTㅤ(CONCAT(Order::getStatus, "-", "done")).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		assertEquals("select concat(o.status, '-', 'done') from Order o", q.getHql());
+		assertEquals("select concat(o.status, '-', 'done') from Order o", q.getUnsafeHql());
 
 		List<String> results = q.via(em, String.class);
 
@@ -378,7 +378,7 @@ public class H2IntegrationTest {
 	/**
 	 * {@code via(EntityManager, Class)} executes a projection that selects an individual field
 	 * alongside an aggregate ({@code group by status}) and returns each row as an {@code Object[]},
-	 * rather than requiring the caller to drop down to {@code em.createQuery(getHql())}.
+	 * rather than requiring the caller to drop down to {@code em.createQuery(getUnsafeHql())}.
 	 */
 	@Test
 	public void viaWithObjectArrayExecutesFieldPlusAggregateProjection() {
@@ -391,7 +391,7 @@ public class H2IntegrationTest {
 
 		Grouped<Object> q = SELECTㅤ(Order::getStatus, COUNT(Order::getId)).ㅤFROMㅤ(Order.class).ㅤAS("o")
 				.GROUPㅤBY(Order::getStatus);
-		assertEquals("select o.status, count(o.id) from Order o group by o.status", q.getHql());
+		assertEquals("select o.status, count(o.id) from Order o group by o.status", q.getUnsafeHql());
 
 		List<Object[]> rows = q.via(em, Object[].class);
 
@@ -420,7 +420,7 @@ public class H2IntegrationTest {
 		Grouped<Object> q = SELECTㅤ(NEW(StatusCount.class, Order::getStatus, COUNT(Order::getId))).ㅤFROMㅤ(Order.class)
 				.ㅤAS("o").GROUPㅤBY(Order::getStatus);
 		assertEquals("select new pro.peter_rader.linqava.h2.StatusCount(o.status, count(o.id)) "
-				+ "from Order o group by o.status", q.getHql());
+				+ "from Order o group by o.status", q.getUnsafeHql());
 
 		List<StatusCount> rows = q.via(em, StatusCount.class);
 
@@ -443,7 +443,7 @@ public class H2IntegrationTest {
 		em.flush();
 
 		ScalarQ<Long> q = SELECTㅤ(COUNTㅤꁘ()).ㅤFROMㅤ(Order.class);
-		assertEquals("select count(*) from Order", q.getHql());
+		assertEquals("select count(*) from Order", q.getUnsafeHql());
 
 		long count = q.via(em);
 
@@ -470,8 +470,8 @@ public class H2IntegrationTest {
 
 		ScalarQ<Long> q = SELECTㅤ(COUNTㅤꁘ()).ㅤFROMㅤ(Order.class).ㅤWHEREㅤ(Order::getCustomer).ㅤᆖㅤ(c)
 				.ㅤANDㅤ(Order::getDiscount).ISㅤNOTㅤNULL();
-		assertTrue(q.getHql().startsWith("select count(*) from Order where customer = "));
-		assertTrue(q.getHql().endsWith(" and discount is not null"));
+		assertTrue(q.getUnsafeHql().startsWith("select count(*) from Order where customer = "));
+		assertTrue(q.getUnsafeHql().endsWith(" and discount is not null"));
 
 		long count = q.via(em);
 
@@ -495,7 +495,7 @@ public class H2IntegrationTest {
 
 		ScalarQ<Boolean> q = SELECTㅤ(COUNTㅤꁘ().ㅤᐳㅤ(1).ㅤANDㅤ(COUNTㅤꁘ()).ㅤᐸㅤ(5).ㅤAS("x")).ㅤFROMㅤ(Order.class)
 				.ㅤWHEREㅤ(Order::getCustomer).ㅤᆖㅤ(c).ㅤANDㅤ(Order::getStatus).ㅤᆖㅤ("PAID");
-		assertTrue(q.getHql().startsWith("select count(*) > 1 and count(*) < 5 as x from Order where customer = "));
+		assertTrue(q.getUnsafeHql().startsWith("select count(*) > 1 and count(*) < 5 as x from Order where customer = "));
 
 		boolean withinRange = q.via(em);
 

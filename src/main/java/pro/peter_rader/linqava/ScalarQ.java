@@ -310,12 +310,14 @@ public final class ScalarQ<T> {
 	}
 
 	/**
-	 * The rendered HQL for this query — see {@link Q#getHql()}.
+	 * The rendered HQL for this query, with every literal inlined — see {@link Q#getUnsafeHql()} for
+	 * why that's unsafe with untrusted input and when to prefer
+	 * {@link #via(jakarta.persistence.EntityManager)} instead.
 	 *
 	 * @return the HQL string
 	 */
-	public String getHql() {
-		return q.getHql();
+	public String getUnsafeHql() {
+		return q.getUnsafeHql();
 	}
 
 	/**
@@ -324,7 +326,7 @@ public final class ScalarQ<T> {
 	 * matching underlying rows — e.g. {@code count(*)} then yields {@code 0}.
 	 *
 	 * <p>
-	 * Unlike {@link Q#getHql()}, every literal value in the query (anything not wrapped in
+	 * Unlike {@link Q#getUnsafeHql()}, every literal value in the query (anything not wrapped in
 	 * {@link Linq#param(String)}) is rendered as an invented {@code :name} bind parameter and passed
 	 * to the {@link TypedQuery} via {@code setParameter} instead of being inlined into the HQL text —
 	 * see {@link Q#via(EntityManager)} for the full rationale.

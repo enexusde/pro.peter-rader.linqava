@@ -21,7 +21,7 @@ import jakarta.persistence.TypedQuery;
 
 /**
  * A linqava query/statement — the builder reached <em>after</em> {@code FROM}.
- * Call {@link #getHql()} on the finished statement to obtain the corresponding
+ * Call {@link #getUnsafeHql()} on the finished statement to obtain the corresponding
  * HQL string, or {@link #via(EntityManager)} to run it.
  *
  * <p>
@@ -542,7 +542,7 @@ public final class Q<E> {
 	 * The {@code group by} clause. A query has exactly one {@code group by} clause
 	 * grouping by however many columns it needs, so this returns {@link Grouped}
 	 * instead of {@code Q<E>} — a narrower type that offers {@code HAVING}/
-	 * {@code ORDER BY}/{@code LIMIT}/{@code OFFSET}/{@code via}/{@code getHql} but
+	 * {@code ORDER BY}/{@code LIMIT}/{@code OFFSET}/{@code via}/{@code getUnsafeHql} but
 	 * deliberately not {@code GROUPㅤBY} itself, so a second, accidental
 	 * {@code .GROUPㅤBY(...)} call fails to compile instead of silently merging into
 	 * this same clause. Pass every grouping column to this one call (it accepts
@@ -802,11 +802,23 @@ public final class Q<E> {
 	// ===== rendering =====
 
 	/**
-	 * Renders this finished statement to its HQL string.
+	 * Renders this finished statement to its HQL string, with every literal value (anything not
+	 * wrapped in {@link Linq#param(String)}) inlined directly into the text rather than bound as a
+	 * parameter.
+	 *
+	 * <p>
+	 * <strong>Unsafe with untrusted input:</strong> if any value compared/assigned in this query came
+	 * from outside the application (user input, another system), inlining it into the HQL text
+	 * verbatim risks HQL injection — the same class of vulnerability as string-built SQL. Use
+	 * {@link #via(jakarta.persistence.EntityManager)} instead wherever possible, since it always
+	 * parameterizes literals via {@code setParameter} instead of inlining them; only reach for this
+	 * method for logging/debugging a query shape, or once you've verified every literal in it is a
+	 * fixed, trusted constant.
+	 * </p>
 	 *
 	 * <p>
 	 * Example:
-	 * {@code SELECT(typedCol(User::id)).FROM(User.class).WHERE(User::Name).ᆖ("John").getHql()}
+	 * {@code SELECT(typedCol(User::id)).FROM(User.class).WHERE(User::Name).ᆖ("John").getUnsafeHql()}
 	 * returns {@code "select id from User where Name = 'John'"}.
 	 * </p>
 	 *
@@ -814,13 +826,13 @@ public final class Q<E> {
 	 *         are guaranteed by the fluent entry points, so this instance is always
 	 *         renderable.)
 	 */
-	public String getHql() {
+	public String getUnsafeHql() {
 		return buildHql(renderCtx(null));
 	}
 
 	/**
 	 * Renders this statement using the given parameter collector — {@code null}
-	 * inlines literals exactly like {@link #getHql()}; a non-{@code null} collector
+	 * inlines literals exactly like {@link #getUnsafeHql()}; a non-{@code null} collector
 	 * (shared across the whole query tree, see {@link Q#via}) turns every literal
 	 * encountered while rendering into a {@code :name} bind parameter instead.
 	 */
@@ -900,14 +912,14 @@ public final class Q<E> {
 	 * }</pre>
 	 *
 	 * <p>
-	 * Unlike {@link #getHql()}, every literal value in the query (anything not
+	 * Unlike {@link #getUnsafeHql()}, every literal value in the query (anything not
 	 * wrapped in {@link Linq#param(String)}) is rendered as an invented
 	 * {@code :name} bind parameter and passed to the {@link TypedQuery} via
 	 * {@code setParameter} instead of being inlined into the HQL text — this
 	 * applies throughout the whole query tree, including CTEs, {@code UNION ALL}
 	 * parts and sub-queries. Values passed via {@link Linq#param(String)} are left
 	 * untouched; bind their values yourself with
-	 * {@code em.createQuery(getHql(), ...).setParameter(name, value)} if needed.
+	 * {@code em.createQuery(getUnsafeHql(), ...).setParameter(name, value)} if needed.
 	 * </p>
 	 *
 	 * @param em the JPA entity manager used to create and run the query; must not
@@ -916,13 +928,13 @@ public final class Q<E> {
 	 * @throws NullPointerException  if {@code em} is {@code null}
 	 * @throws IllegalStateException if the query does not select a single entity
 	 *                               (e.g. it is a scalar/tuple projection); use
-	 *                               {@code em.createQuery(getHql())} for those
+	 *                               {@code em.createQuery(getUnsafeHql())} for those
 	 */
 	public Iterable<E> via(EntityManager em) {
 		Objects.requireNonNull(em, "em");
 		if (select.size() != 1 || !(select.get(0) instanceof EntityExpr) || entityType == null) {
 			throw new IllegalStateException("via(EntityManager) requires a query selecting a single entity, "
-					+ "e.g. SELECT(entity(Order.class)); for projections use em.createQuery(getHql())");
+					+ "e.g. SELECT(entity(Order.class)); for projections use em.createQuery(getUnsafeHql())");
 		}
 		ParamCollector collector = new ParamCollector();
 		String hql = hqlFor(collector);

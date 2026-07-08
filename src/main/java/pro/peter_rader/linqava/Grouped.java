@@ -22,7 +22,7 @@ import jakarta.persistence.FlushModeType;
  * compile instead of silently merging into the same clause.
  *
  * <p>
- * Each method here delegates to the wrapped {@link Q}, so {@link Q#getHql()}/
+ * Each method here delegates to the wrapped {@link Q}, so {@link Q#getUnsafeHql()}/
  * {@link Q#via(EntityManager) via} render and execute exactly as if the clauses had been called on
  * {@code Q} directly — only the fluent chain's static type changes.
  * </p>
@@ -126,12 +126,13 @@ public final class Grouped<E> {
 	}
 
 	/**
-	 * The rendered HQL for this query — see {@link Q#getHql()}.
+	 * The rendered HQL for this query, with every literal inlined — see {@link Q#getUnsafeHql()} for
+	 * why that's unsafe with untrusted input and when to prefer {@link #via(EntityManager)} instead.
 	 *
 	 * @return the HQL string
 	 */
-	public String getHql() {
-		return q.getHql();
+	public String getUnsafeHql() {
+		return q.getUnsafeHql();
 	}
 
 	String hqlFor(ParamCollector collector) {

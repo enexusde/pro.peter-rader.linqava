@@ -199,11 +199,18 @@ public final class EntityQ<E> {
 	}
 
 	/**
-	 * Renders this finished statement to its HQL string.
+	 * Renders this finished statement to its HQL string, with every literal value inlined directly
+	 * into the text rather than bound as a parameter.
+	 *
+	 * <p>
+	 * <strong>Unsafe with untrusted input</strong> — inlining a value that came from outside the
+	 * application risks HQL injection; see {@link Q#getUnsafeHql()} for the full rationale. Prefer
+	 * {@link #via(jakarta.persistence.EntityManager)}, which always parameterizes literals instead.
+	 * </p>
 	 *
 	 * @return the HQL text; never {@code null}
 	 */
-	public String getHql() {
+	public String getUnsafeHql() {
 		return buildHql(renderCtx(null));
 	}
 
