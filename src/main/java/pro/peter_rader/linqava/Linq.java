@@ -1461,26 +1461,20 @@ public final class Linq {
 	}
 
 	/**
-	 * The {@code cast(expr as targetType)} function.
+	 * Starts the {@code cast(expr as targetType)} function; follow with {@link CastStep#ㅤASㅤ(Class)}
+	 * to supply the target type and finish it — {@code CAST(expr, targetType)} in one call is no
+	 * longer possible.
 	 *
 	 * <p>
-	 * {@code targetType} is rendered as its simple name (e.g. {@code String.class}
-	 * &rarr; {@code String}), which Hibernate resolves against its unified type
-	 * system (Java type name, or a recognized cast-type keyword).
-	 * </p>
-	 *
-	 * <p>
-	 * Example: {@code CAST(typedCol(Order::total), String.class)} &rarr;
+	 * Example: {@code CAST(typedCol(Order::total)).AS(String.class)} &rarr;
 	 * {@code cast(o.total as String)}.
 	 * </p>
 	 *
-	 * @param expr       the cast expression; must not be {@code null}
-	 * @param targetType the target Java type; must not be {@code null}
-	 * @return the function call as an {@link Expr}
+	 * @param expr the cast expression; must not be {@code null}
+	 * @return the {@code CAST} phase, which requires {@link CastStep#ㅤASㅤ(Class) AS} next
 	 */
-	public static Expr ㅤCASTㅤ(Object expr, Class<?> targetType) {
-		Expr e = Expr.val(expr);
-		return Expr.of(ctx -> "cast(" + e.render(ctx) + " as " + targetType.getSimpleName() + ")");
+	public static CastStep ㅤCASTㅤ(Object expr) {
+		return new CastStep(Expr.val(expr));
 	}
 
 	// --- TypedCol overloads: take a bare getter reference directly, e.g.
@@ -1709,17 +1703,16 @@ public final class Linq {
 	}
 
 	/**
-	 * {@code cast(column as targetType)}, e.g.
-	 * {@code CAST(Order::total, String.class)} &rarr; {@code cast(o.total as String)}.
+	 * Starts {@code cast(column as targetType)} from a bare getter reference, e.g.
+	 * {@code CAST(Order::total).AS(String.class)} &rarr; {@code cast(o.total as String)} — follow
+	 * with {@link CastStep#ㅤASㅤ(Class)} to supply the target type.
 	 *
-	 * @param col        the column getter (method reference); must not be
-	 *                   {@code null}
-	 * @param targetType the target Java type; must not be {@code null}
-	 * @param <T>        the entity type owning the column
-	 * @return the function call as an {@link Expr}
+	 * @param col the column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the column
+	 * @return the {@code CAST} phase, which requires {@link CastStep#ㅤASㅤ(Class) AS} next
 	 */
-	public static <T> Expr ㅤCASTㅤ(TypedCol<T, ?> col, Class<?> targetType) {
-		return ㅤCASTㅤ(Expr.typedCol(col), targetType);
+	public static <T> CastStep ㅤCASTㅤ(TypedCol<T, ?> col) {
+		return new CastStep(Expr.typedCol(col));
 	}
 
 	/**
