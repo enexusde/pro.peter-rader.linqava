@@ -173,6 +173,66 @@ public final class Linq {
 	}
 
 	/**
+	 * Starts a {@code SELECT} of one column referenced by raw alias and field name — for a
+	 * derived/CTE column that has no entity getter, e.g. {@code SELECT("a", "name")} &rarr;
+	 * {@code select a.name}.
+	 *
+	 * @param alias the range-variable alias qualifying the column; must not be {@code null}
+	 * @param field the field name; must not be {@code null}
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static SelectStep<Object> SELECTㅤ(String alias, String field) {
+		return new SelectStep<>(new Q<Object>().addSelect(typedCol(alias, field)));
+	}
+
+	/**
+	 * Starts a {@code SELECT} of two columns referenced by raw alias and field name — see
+	 * {@link #SELECTㅤ(String, String)}.
+	 *
+	 * @param alias1 the range-variable alias qualifying the first column; must not be {@code null}
+	 * @param field1 the first field name; must not be {@code null}
+	 * @param alias2 the range-variable alias qualifying the second column; must not be {@code null}
+	 * @param field2 the second field name; must not be {@code null}
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static SelectStep<Object> SELECTㅤ(String alias1, String field1, String alias2, String field2) {
+		return new SelectStep<>(new Q<Object>().addSelect(typedCol(alias1, field1), typedCol(alias2, field2)));
+	}
+
+	/**
+	 * Starts a {@code SELECT} of three columns referenced by raw alias and field name — see
+	 * {@link #SELECTㅤ(String, String)}.
+	 *
+	 * @param alias1 the range-variable alias qualifying the first column; must not be {@code null}
+	 * @param field1 the first field name; must not be {@code null}
+	 * @param alias2 the range-variable alias qualifying the second column; must not be {@code null}
+	 * @param field2 the second field name; must not be {@code null}
+	 * @param alias3 the range-variable alias qualifying the third column; must not be {@code null}
+	 * @param field3 the third field name; must not be {@code null}
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static SelectStep<Object> SELECTㅤ(String alias1, String field1, String alias2, String field2,
+			String alias3, String field3) {
+		return new SelectStep<>(new Q<Object>().addSelect(typedCol(alias1, field1), typedCol(alias2, field2),
+				typedCol(alias3, field3)));
+	}
+
+	/**
+	 * Starts a {@code SELECT} whose first column is a bare getter reference and whose second is a
+	 * raw alias-qualified field with no getter, e.g. {@code SELECT(Customer::name, "b", "total")}
+	 * &rarr; {@code select name, b.total}.
+	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param alias the range-variable alias qualifying the second column; must not be {@code null}
+	 * @param field the second column's field name; must not be {@code null}
+	 * @param <A>   the entity type owning the first column
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <A> SelectStep<Object> SELECTㅤ(TypedCol<A, ?> first, String alias, String field) {
+		return new SelectStep<>(new Q<Object>().addSelect(Expr.typedCol(first), typedCol(alias, field)));
+	}
+
+	/**
 	 * SELECT of 1 explicitly aliased bare column — avoids any {@code typedCol(...)}-style wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
@@ -184,6 +244,21 @@ public final class Linq {
 			TypedCol<T1, ?> first, String firstAlias) {
 		return new SelectStep<>(new Q<Object>().addSelect(
 				Expr.typedCol(first).ㅤAS(firstAlias)));
+	}
+
+	/**
+	 * SELECT of 1 explicitly aliased bare column followed by arbitrary further columns/expressions —
+	 * for mixing an aliased getter with e.g. an aggregate or window function that carries its own
+	 * {@code .AS(...)}.
+	 *
+	 * @param rest the remaining columns/expressions, in order; must not be {@code null}, may be empty
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1> SelectStep<Object> SELECTㅤ(TypedCol<T1, ?> first, String firstAlias, Object... rest) {
+		Object[] args = new Object[rest.length + 1];
+		args[0] = Expr.typedCol(first).ㅤAS(firstAlias);
+		System.arraycopy(rest, 0, args, 1, rest.length);
+		return new SelectStep<>(new Q<Object>().addSelect(args));
 	}
 
 	/**
@@ -203,6 +278,22 @@ public final class Linq {
 	}
 
 	/**
+	 * SELECT of 2 explicitly aliased bare columns followed by arbitrary further columns/expressions —
+	 * see {@link #SELECTㅤ(TypedCol, String, Object...)}.
+	 *
+	 * @param rest the remaining columns/expressions, in order; must not be {@code null}, may be empty
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2> SelectStep<Object> SELECTㅤ(TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias, Object... rest) {
+		Object[] args = new Object[rest.length + 2];
+		args[0] = Expr.typedCol(first).ㅤAS(firstAlias);
+		args[1] = Expr.typedCol(second).ㅤAS(secondAlias);
+		System.arraycopy(rest, 0, args, 2, rest.length);
+		return new SelectStep<>(new Q<Object>().addSelect(args));
+	}
+
+	/**
 	 * SELECT of 3 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
@@ -218,6 +309,23 @@ public final class Linq {
 				Expr.typedCol(first).ㅤAS(firstAlias),
 				Expr.typedCol(second).ㅤAS(secondAlias),
 				Expr.typedCol(third).ㅤAS(thirdAlias)));
+	}
+
+	/**
+	 * SELECT of 3 explicitly aliased bare columns followed by arbitrary further columns/expressions —
+	 * see {@link #SELECTㅤ(TypedCol, String, Object...)}.
+	 *
+	 * @param rest the remaining columns/expressions, in order; must not be {@code null}, may be empty
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3> SelectStep<Object> SELECTㅤ(TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias, TypedCol<T3, ?> third, String thirdAlias, Object... rest) {
+		Object[] args = new Object[rest.length + 3];
+		args[0] = Expr.typedCol(first).ㅤAS(firstAlias);
+		args[1] = Expr.typedCol(second).ㅤAS(secondAlias);
+		args[2] = Expr.typedCol(third).ㅤAS(thirdAlias);
+		System.arraycopy(rest, 0, args, 3, rest.length);
+		return new SelectStep<>(new Q<Object>().addSelect(args));
 	}
 
 	/**
@@ -1089,6 +1197,36 @@ public final class Linq {
 		return Expr.of(ctx -> "(" + subquery.getUnsafeHql() + ")");
 	}
 
+	/**
+	 * Addition ({@code +}) of two bare getter references, e.g. {@code ᐩ(Order::total, Order::discount)}
+	 * &rarr; {@code o.total + o.discount} — for starting an arithmetic expression from two columns
+	 * without an {@link Expr} receiver to chain {@link Expr#ᐩ(Object)} onto.
+	 *
+	 * @param left  the left column getter (method reference); must not be {@code null}
+	 * @param right the right column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the left column
+	 * @param <R>   the entity type owning the right column
+	 * @return the sum as an {@link Expr}
+	 */
+	public static <T, R> Expr ᐩ(TypedCol<T, ?> left, TypedCol<R, ?> right) {
+		return Expr.typedCol(left).ᐩ(right);
+	}
+
+	/**
+	 * Addition ({@code +}) starting from a column referenced by raw alias and field name, e.g.
+	 * {@code ᐩ("h", "depth", 1)} &rarr; {@code h.depth + 1} — for a derived/CTE column (typically a
+	 * recursive CTE's own result, referenced arithmetically in its recursive step) that has no
+	 * entity getter.
+	 *
+	 * @param alias the range-variable alias qualifying the left column; must not be {@code null}
+	 * @param field the left column's field name; must not be {@code null}
+	 * @param right the right operand (Expr/literal); must not be {@code null}
+	 * @return the sum as an {@link Expr}
+	 */
+	public static Expr ᐩ(String alias, String field, Object right) {
+		return typedCol(alias, field).ᐩ(right);
+	}
+
 	// ===== aggregate / scalar functions =====
 
 	/**
@@ -1277,6 +1415,29 @@ public final class Linq {
 		Object[] args = new Object[rest.length + 1];
 		args[0] = Expr.typedCol(first);
 		System.arraycopy(rest, 0, args, 1, rest.length);
+		return CONCAT(args);
+	}
+
+	/**
+	 * {@code concat(column, ..., column, ...)} whose first <em>and</em> third arguments are bare
+	 * getter references, e.g. {@code CONCAT(Order::status, "-", Order::id)} &rarr;
+	 * {@code concat(o.status, '-', o.id)} — see {@link #CONCAT(TypedCol, Object...)}.
+	 *
+	 * @param first  the first column getter (method reference); must not be {@code null}
+	 * @param second the second concatenated expression/literal; must not be {@code null}
+	 * @param third  the third column getter (method reference); must not be {@code null}
+	 * @param rest   the remaining concatenated expressions/literals, in order; must not be
+	 *               {@code null}, may be empty
+	 * @param <T>    the entity type owning the first column
+	 * @param <R>    the entity type owning the third column
+	 * @return the function call as an {@link Expr}
+	 */
+	public static <T, R> Expr CONCAT(TypedCol<T, ?> first, Object second, TypedCol<R, ?> third, Object... rest) {
+		Object[] args = new Object[rest.length + 3];
+		args[0] = Expr.typedCol(first);
+		args[1] = second;
+		args[2] = Expr.typedCol(third);
+		System.arraycopy(rest, 0, args, 3, rest.length);
 		return CONCAT(args);
 	}
 
@@ -1699,6 +1860,30 @@ public final class Linq {
 		Object[] args = new Object[rest.length + 1];
 		args[0] = Expr.typedCol(first);
 		System.arraycopy(rest, 0, args, 1, rest.length);
+		return Expr.of(ctx -> "new " + dto.getName() + "(" + Expr.list(ctx, args) + ")");
+	}
+
+	/**
+	 * A constructor (DTO) projection whose first <em>and</em> second arguments are bare getter
+	 * references, e.g. {@code NEW(CustomerSummary.class, Customer::id, Customer::name)} — see
+	 * {@link #NEW(Class, TypedCol, Object...)}.
+	 *
+	 * @param dto    the DTO class whose constructor is invoked; must not be
+	 *               {@code null}. The fully-qualified name ({@link Class#getName()})
+	 *               is emitted.
+	 * @param first  the first constructor argument (method reference); must not be {@code null}
+	 * @param second the second constructor argument (method reference); must not be {@code null}
+	 * @param rest   the remaining constructor arguments, in order; must not be {@code null}, may be
+	 *               empty
+	 * @param <T>    the entity type owning the first argument's column
+	 * @param <R>    the entity type owning the second argument's column
+	 * @return the constructor projection as an {@link Expr}
+	 */
+	public static <T, R> Expr NEW(Class<?> dto, TypedCol<T, ?> first, TypedCol<R, ?> second, Object... rest) {
+		Object[] args = new Object[rest.length + 2];
+		args[0] = Expr.typedCol(first);
+		args[1] = Expr.typedCol(second);
+		System.arraycopy(rest, 0, args, 2, rest.length);
 		return Expr.of(ctx -> "new " + dto.getName() + "(" + Expr.list(ctx, args) + ")");
 	}
 

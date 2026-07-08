@@ -27,13 +27,13 @@ import org.junit.Test;
  * {@code UNIONㅤALL}.</li>
  * <li>Columns are getter method references ({@code User::Name}); most call
  * sites (comparisons, {@code GROUP BY}, {@code ORDER BY}, {@code JOIN FETCH},
- * {@code CASE...THEN}, ...) accept them bare. Where a column needs
- * {@code .AS(...)}/arithmetic chained onto it, or is a derived/alias-qualified
- * column with no getter, wrap it with {@code typedCol(...)} — {@code typedCol(User::id)},
- * {@code typedCol("orderCount")}, {@code typedCol("alias", "field")}.</li>
- * <li>The {@code AS} keyword aliases both fields
- * ({@code typedCol(User::id).AS("id")}) and tables
- * ({@code FROM(User.class).AS("u")}).</li>
+ * {@code CASE...THEN}, ...) accept them bare. To alias a column in a
+ * {@code SELECT} list, pass it as a {@code (getter, alias)} pair directly to
+ * {@code SELECT(...)} instead of chaining {@code .AS(...)} onto a wrapped
+ * column, e.g. {@code SELECT(User::id, "id", User::name, "name")}. Derived/CTE
+ * columns with no getter use the {@code (alias, field)} string-pair overloads
+ * instead, e.g. {@code SELECT("a", "name")}.</li>
+ * <li>The {@code AS} keyword aliases tables ({@code FROM(User.class).AS("u")}).</li>
  * <li>{@code WHERE}/{@code ON}/{@code HAVING} start from a bare column or
  * expression, followed by an operator supplying the right-hand value, e.g.
  * {@code WHERE(User::Name).ᆖ("John")}; chain further predicates with
@@ -143,11 +143,11 @@ public class QueryTest {
 	@Test
 	public void testCteSimple() {
 		Q<Object> q = WITH("activeUsers",
-				SELECTㅤ(typedCol(User::id).ㅤAS("id"), typedCol(User::name).ㅤAS("name")).ㅤFROMㅤ(User.class).ㅤAS("u")
+				SELECTㅤ(User::id, "id", User::name, "name").ㅤFROMㅤ(User.class).ㅤAS("u")
 						.ㅤWHEREㅤ(User::active).ㅤᆖㅤ(true))
-				.SELECTㅤ(typedCol("a", "name")).FROM("activeUsers").ㅤAS("a").ㅤORDERㅤBYㅤ(typedCol("a", "name"));
+				.SELECTㅤ("a", "name").FROM("activeUsers").ㅤAS("a").ㅤORDERㅤBYㅤ("a", "name").ASC();
 		assertEquals("with activeUsers as (select u.id as id, u.name as name from User u "
-				+ "where u.active = true) select a.name from activeUsers a order by a.name", q.getUnsafeHql());
+				+ "where u.active = true) select a.name from activeUsers a order by a.name asc", q.getUnsafeHql());
 	}
 
 	// WITH recentOrders AS (...), bigSpenders AS (...) SELECT ... FROM bigSpenders
@@ -155,13 +155,13 @@ public class QueryTest {
 	@Test
 	public void testCteMultiple() {
 		Q<Object> q = WITH("recentOrders",
-				SELECTㅤ(typedCol(Order::id).ㅤAS("id"), typedCol(Order::customerId).ㅤAS("customerId")).ㅤFROMㅤ(Order.class).ㅤAS("o")
+				SELECTㅤ(Order::id, "id", Order::customerId, "customerId").ㅤFROMㅤ(Order.class).ㅤAS("o")
 						.ㅤWHEREㅤ(Order::createdAt).ㅤᐳㅤ(param("since")))
-				.WITH("bigSpenders", SELECTㅤ(typedCol(Order::customerId).ㅤAS("customerId"), SUM(Order::total).ㅤAS("total"))
-						.FROM("recentOrders").ㅤAS("r").JOIN(Order.class).ㅤAS("o").ㅤONㅤ(Order::id).ㅤᆖㅤ(typedCol("r", "id"))
+				.WITH("bigSpenders", SELECTㅤ(Order::customerId, "customerId", SUM(Order::total).ㅤAS("total"))
+						.FROM("recentOrders").ㅤAS("r").JOIN(Order.class).ㅤAS("o").ㅤONㅤ(Order::id).ㅤᆖㅤ("r", "id")
 						.GROUPㅤBY(Order::customerId).HAVING(SUM(Order::total)).ㅤᐳㅤ(param("threshold")))
-				.SELECTㅤ(Customer::name, typedCol("b", "total")).FROM("bigSpenders").ㅤAS("b").JOIN(Customer.class).ㅤAS("c")
-				.ㅤONㅤ(Customer::id).ㅤᆖㅤ(typedCol("b", "customerId")).ㅤORDERㅤBYㅤ("b", "total").DESC();
+				.SELECTㅤ(Customer::name, "b", "total").FROM("bigSpenders").ㅤAS("b").JOIN(Customer.class).ㅤAS("c")
+				.ㅤONㅤ(Customer::id).ㅤᆖㅤ("b", "customerId").ㅤORDERㅤBYㅤ("b", "total").DESC();
 		assertEquals("with recentOrders as (select o.id as id, o.customerId as customerId from Order o "
 				+ "where o.createdAt > :since), bigSpenders as (select o.customerId as customerId, "
 				+ "sum(o.total) as total from recentOrders r join Order o on o.id = r.id "
@@ -175,13 +175,13 @@ public class QueryTest {
 	@Test
 	public void testRecursiveCte() {
 		Q<Object> q = WITHㅤRECURSIVE("empHierarchy",
-				SELECTㅤ(typedCol(Employee::id).ㅤAS("id"), typedCol(Employee::managerId).ㅤAS("managerId"), lit(0).ㅤAS("depth"))
+				SELECTㅤ(Employee::id, "id", Employee::managerId, "managerId", lit(0).ㅤAS("depth"))
 						.ㅤFROMㅤ(Employee.class).ㅤAS("e").ㅤWHEREㅤ(Employee::managerId).ISㅤNULL()
-						.UNIONㅤALL(SELECTㅤ(typedCol(Employee::id).ㅤAS("id"), typedCol(Employee::managerId).ㅤAS("managerId"),
-								typedCol("h", "depth").ᐩ(1).ㅤAS("depth")).ㅤFROMㅤ(Employee.class).ㅤAS("e")
-								.JOIN("empHierarchy").ㅤAS("h").ㅤONㅤ(Employee::managerId).ㅤᆖㅤ(typedCol("h", "id"))))
-				.SELECTㅤ(typedCol("h", "id"), typedCol("h", "depth")).FROM("empHierarchy").ㅤAS("h")
-				.ㅤORDERㅤBYㅤ(typedCol("h", "depth"), typedCol("h", "id"));
+						.UNIONㅤALL(SELECTㅤ(Employee::id, "id", Employee::managerId, "managerId",
+								ᐩ("h", "depth", 1).ㅤAS("depth")).ㅤFROMㅤ(Employee.class).ㅤAS("e")
+								.JOIN("empHierarchy").ㅤAS("h").ㅤONㅤ(Employee::managerId).ㅤᆖㅤ("h", "id")))
+				.SELECTㅤ("h", "id", "h", "depth").FROM("empHierarchy").ㅤAS("h")
+				.ㅤORDERㅤBYㅤ("h", "depth", "h", "id");
 		assertEquals("with recursive empHierarchy as (select e.id as id, e.managerId as managerId, 0 as depth "
 				+ "from Employee e where e.managerId is null union all "
 				+ "select e.id as id, e.managerId as managerId, h.depth + 1 as depth "
@@ -240,7 +240,7 @@ public class QueryTest {
 	@Test
 	public void testJoinFetch() {
 		Q<Customer> q = SELECTㅤ(DISTINCTㅤ(Customer.class)).ㅤFROMㅤ(Customer.class).ㅤAS("c")
-				.LEFTㅤJOINㅤFETCH(Customer::orders).ㅤAS("o").LEFTㅤJOINㅤFETCH(typedCol("o", "items"))
+				.LEFTㅤJOINㅤFETCH(Customer::orders).ㅤAS("o").LEFTㅤJOINㅤFETCH("o", "items")
 				.ㅤWHEREㅤ(Customer::country).ㅤᆖㅤ(param("country"));
 		assertEquals("select distinct c from Customer c left join fetch c.orders o "
 				+ "left join fetch o.items where c.country = :country", q.getUnsafeHql());
@@ -250,7 +250,7 @@ public class QueryTest {
 	// OrderItem oi ON ... JOIN Product p ON ...
 	@Test
 	public void testMultipleJoinsWithOn() {
-		Q<Object> q = SELECTㅤ(Order::id, typedCol(Customer::name), typedCol(Product::title)).ㅤFROMㅤ(Order.class).ㅤAS("o")
+		Q<Object> q = SELECTㅤ(Order::id, Customer::name, Product::title).ㅤFROMㅤ(Order.class).ㅤAS("o")
 				.JOIN(Customer.class).ㅤAS("c").ㅤONㅤ(Customer::id).ㅤᆖㅤ("o", Order::customerId).JOIN(OrderItem.class)
 				.ㅤAS("oi").ㅤONㅤ(OrderItem::orderId).ㅤᆖㅤ("o", Order::id).JOIN(Product.class).ㅤAS("p").ㅤONㅤ(Product::id)
 				.ㅤᆖㅤ("oi", OrderItem::productId).ㅤWHEREㅤ(Product::price).ㅤᐳㅤ(param("minPrice"));
@@ -272,7 +272,7 @@ public class QueryTest {
 	// BY ... DESC) AS rn FROM Order o
 	@Test
 	public void testWindowFunction() {
-		Q<Object> q = SELECTㅤ(Order::customerId, typedCol(Order::id), typedCol(Order::total),
+		Q<Object> q = SELECTㅤ(Order::customerId, Order::id, Order::total,
 				ROW_NUMBER().OVER(ㅤPARTITIONㅤBYㅤ(Order::customerId).ORDERㅤBY(Order::total).DESC()).ㅤAS("rn"))
 				.ㅤFROMㅤ(Order.class).ㅤAS("o");
 		assertEquals(
@@ -285,8 +285,8 @@ public class QueryTest {
 	// FROM Supplier s WHERE s.preferred = true
 	@Test
 	public void testUnionAll() {
-		Q<Object> q = SELECTㅤ(typedCol(User::email).ㅤAS("contact")).ㅤFROMㅤ(User.class).ㅤAS("u").ㅤWHEREㅤ(User::active)
-				.ㅤᆖㅤ(true).UNIONㅤALL(SELECTㅤ(typedCol(Supplier::email).ㅤAS("contact")).ㅤFROMㅤ(Supplier.class).ㅤAS("s")
+		Q<Object> q = SELECTㅤ(User::email, "contact").ㅤFROMㅤ(User.class).ㅤAS("u").ㅤWHEREㅤ(User::active)
+				.ㅤᆖㅤ(true).UNIONㅤALL(SELECTㅤ(Supplier::email, "contact").ㅤFROMㅤ(Supplier.class).ㅤAS("s")
 						.ㅤWHEREㅤ(Supplier::preferred).ㅤᆖㅤ(true));
 		assertEquals("select u.email as contact from User u where u.active = true union all "
 				+ "select s.email as contact from Supplier s where s.preferred = true", q.getUnsafeHql());
@@ -296,7 +296,7 @@ public class QueryTest {
 	// JOIN c.orders o GROUP BY c.id, c.name
 	@Test
 	public void testConstructorExpression() {
-		Grouped<Object> q = SELECTㅤ(NEW(CustomerSummary.class, Customer::id, typedCol(Customer::name), COUNT(typedCol("o", Order::id))))
+		Grouped<Object> q = SELECTㅤ(NEW(CustomerSummary.class, Customer::id, Customer::name, COUNT("o", Order::id)))
 				.ㅤFROMㅤ(Customer.class).ㅤAS("c").LEFTㅤJOIN(Customer::orders).ㅤAS("o")
 				.GROUPㅤBY(Customer::id, Customer::name);
 		assertEquals("select new pro.peter_rader.linqava.CustomerSummary(c.id, c.name, count(o.id)) from Customer c "
@@ -332,12 +332,12 @@ public class QueryTest {
 	@Test
 	public void testCteWithWindowFunction() {
 		Q<Object> q = WITH("rankedOrders",
-				SELECTㅤ(typedCol(Order::id).ㅤAS("id"), typedCol(Order::customerId).ㅤAS("customerId"),
-						typedCol(Order::total).ㅤAS("total"),
+				SELECTㅤ(Order::id, "id", Order::customerId, "customerId",
+						Order::total, "total",
 						RANK().OVER(ㅤPARTITIONㅤBYㅤ(Order::customerId).ORDERㅤBY(Order::total).DESC()).ㅤAS("rnk"))
 						.ㅤFROMㅤ(Order.class).ㅤAS("o"))
-				.SELECTㅤ(typedCol("r", "customerId"), typedCol("r", "id"), typedCol("r", "total")).FROM("rankedOrders").ㅤAS("r")
-				.ㅤWHEREㅤ(typedCol("r", "rnk")).ㅤᆖㅤ(1);
+				.SELECTㅤ("r", "customerId", "r", "id", "r", "total").FROM("rankedOrders").ㅤAS("r")
+				.ㅤWHEREㅤ("r", "rnk").ㅤᆖㅤ(1);
 		assertEquals("with rankedOrders as (select o.id as id, o.customerId as customerId, o.total as total, "
 				+ "rank() over (partition by o.customerId order by o.total desc) as rnk from Order o) "
 				+ "select r.customerId, r.id, r.total from rankedOrders r where r.rnk = 1", q.getUnsafeHql());
@@ -350,7 +350,7 @@ public class QueryTest {
 		Q<Object> q = SELECTㅤ(Customer::name,
 				sub(SELECTㅤ(COUNT(Order::id)).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤWHEREㅤ(Order::customerId).ㅤᆖㅤ("c",
 						Customer::id)).ㅤAS("orderCount"))
-				.ㅤFROMㅤ(Customer.class).ㅤAS("c").ㅤORDERㅤBYㅤ(typedCol("orderCount").DESC());
+				.ㅤFROMㅤ(Customer.class).ㅤAS("c").ㅤORDERㅤBYㅤ("orderCount").DESC();
 		assertEquals("select c.name, (select count(o.id) from Order o where o.customerId = c.id) as orderCount "
 				+ "from Customer c order by orderCount desc", q.getUnsafeHql());
 	}
@@ -406,7 +406,7 @@ public class QueryTest {
 
 	@Test
 	public void testComplex2() {
-		Q<Driver> q = SELECTㅤ(Driver.class).ㅤFROMㅤ(Driver.class).ㅤWHEREㅤ(typedCol(Driver::id)).ㅤᐳㅤ(0);
+		Q<Driver> q = SELECTㅤ(Driver.class).ㅤFROMㅤ(Driver.class).ㅤWHEREㅤ(Driver::id).ㅤᐳㅤ(0);
 		assertEquals("select Driver from Driver where id > 0", q.getUnsafeHql());
 	}
 
@@ -442,13 +442,13 @@ public class QueryTest {
 	// LEFT JOIN s.translationImageKeys ik LEFT JOIN ik.translationImages ti WHERE s.id = :sid
 	@Test
 	public void testMaxVersionAcrossNestedLeftJoinedAssociations() {
-		Q<Object> q = SELECTㅤ(MAX(typedCol("ti", TranslationImage::version)), MAX(typedCol("ik", TranslationImageKey::version)),
-				MAX(typedCol("s", TranslationStack::version)), MAX(typedCol("kw", TranslationKeyword::version)),
-				MAX(typedCol("tv", TranslationValue::version))).ㅤFROMㅤ(TranslationStack.class).ㅤAS("s")
+		Q<Object> q = SELECTㅤ(MAX("ti", TranslationImage::version), MAX("ik", TranslationImageKey::version),
+				MAX("s", TranslationStack::version), MAX("kw", TranslationKeyword::version),
+				MAX("tv", TranslationValue::version)).ㅤFROMㅤ(TranslationStack.class).ㅤAS("s")
 				.LEFTㅤJOIN(TranslationStack::translationKeywords).ㅤAS("kw")
-				.LEFTㅤJOIN(typedCol("kw", TranslationKeyword::translationValues)).ㅤAS("tv")
+				.LEFTㅤJOIN("kw", TranslationKeyword::translationValues).ㅤAS("tv")
 				.LEFTㅤJOIN(TranslationStack::translationImageKeys).ㅤAS("ik")
-				.LEFTㅤJOIN(typedCol("ik", TranslationImageKey::translationImages)).ㅤAS("ti")
+				.LEFTㅤJOIN("ik", TranslationImageKey::translationImages).ㅤAS("ti")
 				.ㅤWHEREㅤ(TranslationStack::id).ㅤᆖㅤ(param("sid"));
 		assertEquals("select max(ti.version), max(ik.version), max(s.version), max(kw.version), max(tv.version) "
 				+ "from TranslationStack s left join s.translationKeywords kw "
@@ -478,13 +478,13 @@ public class QueryTest {
 	// WHERE b.id IS NOT NULL — a self-join, disambiguated via alias-qualified columns on both sides
 	@Test
 	public void testSelfJoinWithCompoundOnConditionAndLower() {
-		Q<Object> q = SELECTㅤ(typedCol("a", EMailAddressLocalName::id), typedCol("b", EMailAddressLocalName::id))
+		Q<Object> q = SELECTㅤ("a", EMailAddressLocalName::id, "b", EMailAddressLocalName::id)
 				.ㅤFROMㅤ(EMailAddressLocalName.class).ㅤAS("a").JOIN(EMailAddressLocalName.class).ㅤAS("b")
 				.ㅤONㅤ(ㅤANDㅤ(
-						ㅤᐸᐳㅤ(LOWER(typedCol("a", EMailAddressLocalName::localName)), typedCol("b", EMailAddressLocalName::localName)),
-						ㅤᆖㅤ(typedCol("a", EMailAddressLocalName::localName), typedCol("b", EMailAddressLocalName::localName)),
-						ㅤᐸᐳㅤ(typedCol("a", EMailAddressLocalName::id), typedCol("b", EMailAddressLocalName::id))))
-				.ㅤWHEREㅤ(typedCol("b", EMailAddressLocalName::id)).ISㅤNOTㅤNULL();
+						ㅤᐸᐳㅤ(LOWER("a", EMailAddressLocalName::localName), "b", EMailAddressLocalName::localName),
+						ㅤᆖㅤ("a", EMailAddressLocalName::localName, "b", EMailAddressLocalName::localName),
+						ㅤᐸᐳㅤ("a", EMailAddressLocalName::id, "b", EMailAddressLocalName::id)))
+				.ㅤWHEREㅤ("b", EMailAddressLocalName::id).ISㅤNOTㅤNULL();
 		assertEquals("select a.id, b.id from EMailAddressLocalName a join EMailAddressLocalName b "
 				+ "on (lower(a.localName) <> b.localName and a.localName = b.localName and a.id <> b.id) "
 				+ "where b.id is not null", q.getUnsafeHql());
@@ -493,7 +493,7 @@ public class QueryTest {
 	// SELECT o FROM Order o ORDER BY o.total DESC LIMIT 10 OFFSET 20
 	@Test
 	public void testLimitAndOffset() {
-		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤORDERㅤBYㅤ(typedCol(Order::total).DESC())
+		Q<Order> q = SELECTㅤ(Order.class).ㅤFROMㅤ(Order.class).ㅤAS("o").ㅤORDERㅤBYㅤ(Order::total).DESC()
 				.LIMIT(10).OFFSET(20);
 		assertEquals("select o from Order o order by o.total desc limit 10 offset 20", q.getUnsafeHql());
 	}
@@ -526,7 +526,7 @@ public class QueryTest {
 		assertEquals("select cast(count(o.id) as String) from Order o", q.getUnsafeHql());
 	}
 
-	// SELECT DISTINCT o.customerId FROM Order o — DISTINCT(alias, Col) shorthand for DISTINCT(typedCol(alias, Col))
+	// SELECT DISTINCT o.customerId FROM Order o — DISTINCT(alias, getter) alias-qualified shorthand
 	@Test
 	public void testDistinctAliasColShorthand() {
 		Q<Object> q = SELECTㅤ(DISTINCT("o", Order::customerId)).ㅤFROMㅤ(Order.class).ㅤAS("o");
@@ -536,7 +536,7 @@ public class QueryTest {
 	// SELECT o.total + o.discount FROM Order o — Expr arithmetic against a bare column, no typedCol() needed
 	@Test
 	public void testExprArithmeticWithBareColOperand() {
-		Q<Object> q = SELECTㅤ(typedCol(Order::total).ᐩ(Order::discount)).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Q<Object> q = SELECTㅤ(ᐩ(Order::total, Order::discount)).ㅤFROMㅤ(Order.class).ㅤAS("o");
 		assertEquals("select o.total + o.discount from Order o", q.getUnsafeHql());
 	}
 
@@ -553,7 +553,7 @@ public class QueryTest {
 	// — the static Cond builder compares two bare columns directly, no typedCol() needed on either side
 	@Test
 	public void testJoinOnWithBareColColCondBuilder() {
-		Q<Object> q = SELECTㅤ(Order::id, typedCol(Customer::name)).ㅤFROMㅤ(Order.class).ㅤAS("o")
+		Q<Object> q = SELECTㅤ(Order::id, Customer::name).ㅤFROMㅤ(Order.class).ㅤAS("o")
 				.JOIN(Customer.class).ㅤAS("c").ㅤONㅤ(ㅤᆖㅤ(Customer::id, Order::customerId));
 		assertEquals("select o.id, c.name from Order o join Customer c on c.id = o.customerId", q.getUnsafeHql());
 	}
@@ -593,7 +593,7 @@ public class QueryTest {
 	// SELECT CONCAT(o.status, '-', o.id) FROM Order o
 	@Test
 	public void testConcat() {
-		Q<Object> q = SELECTㅤ(CONCAT(Order::status, "-", typedCol(Order::id))).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Q<Object> q = SELECTㅤ(CONCAT(Order::status, "-", Order::id)).ㅤFROMㅤ(Order.class).ㅤAS("o");
 		assertEquals("select concat(o.status, '-', o.id) from Order o", q.getUnsafeHql());
 	}
 

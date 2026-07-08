@@ -327,6 +327,42 @@ public final class Q<E> {
 	}
 
 	/**
+	 * Left-outer fetch-join along an alias-qualified path — the counterpart to
+	 * {@link #LEFTㅤJOINㅤFETCH(TypedCol)} for a path whose owner is not the query's root but a
+	 * previously joined alias.
+	 *
+	 * <p>
+	 * Example: {@code LEFTㅤJOINㅤFETCH("kw", TranslationKeyword::translationValues)} &rarr;
+	 * {@code left join fetch kw.translationValues}.
+	 * </p>
+	 *
+	 * @param alias the range-variable alias qualifying {@code path}'s owner; must not be
+	 *              {@code null}
+	 * @param path  the association getter (method reference); must not be {@code null}
+	 * @param <T>   the owning entity type
+	 * @return this builder, for chaining
+	 */
+	public <T> Q<E> LEFTㅤJOINㅤFETCH(String alias, TypedCol<T, ?> path) {
+		return addJoin("left join fetch", src(null, false, Linq.typedCol(alias, path)));
+	}
+
+	/**
+	 * Left-outer fetch-join along an alias-qualified path referenced by raw field name — for a
+	 * derived/CTE association path that has no entity getter.
+	 *
+	 * <p>
+	 * Example: {@code LEFTㅤJOINㅤFETCH("o", "items")} &rarr; {@code left join fetch o.items}.
+	 * </p>
+	 *
+	 * @param alias the range-variable alias qualifying the path's owner; must not be {@code null}
+	 * @param field the field name; must not be {@code null}
+	 * @return this builder, for chaining
+	 */
+	public Q<E> LEFTㅤJOINㅤFETCH(String alias, String field) {
+		return addJoin("left join fetch", src(null, false, Linq.typedCol(alias, field)));
+	}
+
+	/**
 	 * The {@code on} condition for the most recently added join, from a pre-built
 	 * predicate (see {@link Linq#ㅤANDㅤ(Cond...)} / {@link Linq#ㅤᆖㅤ(TypedCol, Object)}).
 	 *
@@ -419,12 +455,29 @@ public final class Q<E> {
 	}
 
 	/**
+	 * The {@code where} clause, started from a column referenced by raw alias and field name — for
+	 * a derived/CTE column that has no entity getter; follow with a comparison operator on the
+	 * returned {@link WhereStep}.
+	 *
+	 * <p>
+	 * Example: {@code WHERE("r", "rnk").ᆖ(1)} &rarr; {@code where r.rnk = 1}.
+	 * </p>
+	 *
+	 * @param alias the range-variable alias qualifying the column; must not be {@code null}
+	 * @param field the field name; must not be {@code null}
+	 * @return the pending comparison, awaiting an operator
+	 */
+	public WhereStep<Q<E>> ㅤWHEREㅤ(String alias, String field) {
+		return where(Linq.typedCol(alias, field), null, "and");
+	}
+
+	/**
 	 * The {@code where} clause, started from an arbitrary left expression (e.g. an
 	 * aggregate, a {@code TREAT(...)}-cast member access or an aliased column);
 	 * follow with a comparison operator on the returned {@link WhereStep}.
 	 *
 	 * <p>
-	 * Example: {@code WHERE(typedCol("r", "rnk")).ᆖ(1)} &rarr; {@code where r.rnk = 1}.
+	 * Example: {@code WHERE(sub(...)).ᆖ(1)} &rarr; {@code where (select ...) = 1}.
 	 * </p>
 	 *
 	 * @param left the left operand; must not be {@code null}
@@ -704,6 +757,44 @@ public final class Q<E> {
 	 */
 	public OrderByStep<E> ㅤORDERㅤBYㅤ(String alias, String field) {
 		return new OrderByStep<>(this, Linq.typedCol(alias, field));
+	}
+
+	/**
+	 * The {@code order by} clause, started from a bare field name with no alias — for a name that
+	 * refers to a previously-aliased {@code SELECT} item (e.g. a sub-query result) rather than an
+	 * entity column.
+	 *
+	 * <p>
+	 * Example: {@code SELECT(..., sub(...).AS("orderCount")).FROM(...).ORDER‿BY("orderCount").DESC()}
+	 * &rarr; {@code order by orderCount desc}.
+	 * </p>
+	 *
+	 * @param field the field/alias name; must not be {@code null}
+	 * @return the pending ordering, awaiting a direction
+	 */
+	public OrderByStep<E> ㅤORDERㅤBYㅤ(String field) {
+		return new OrderByStep<>(this, Linq.typedCol(field));
+	}
+
+	/**
+	 * The {@code order by} clause for two columns, each referenced by raw alias and field name, with
+	 * no explicit direction (ascending, HQL's default) — for derived/CTE columns that have no entity
+	 * getter.
+	 *
+	 * <p>
+	 * Example: {@code ORDER‿BY("h", "depth", "h", "id")} &rarr; {@code order by h.depth, h.id}.
+	 * </p>
+	 *
+	 * @param alias1 the range-variable alias qualifying the first column; must not be {@code null}
+	 * @param field1 the first field name; must not be {@code null}
+	 * @param alias2 the range-variable alias qualifying the second column; must not be {@code null}
+	 * @param field2 the second field name; must not be {@code null}
+	 * @return this builder, for chaining
+	 */
+	public Q<E> ㅤORDERㅤBYㅤ(String alias1, String field1, String alias2, String field2) {
+		orderBy.add(Linq.typedCol(alias1, field1));
+		orderBy.add(Linq.typedCol(alias2, field2));
+		return this;
 	}
 
 	Q<E> addOrderBy(Expr e) {

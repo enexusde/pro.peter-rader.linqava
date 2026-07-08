@@ -109,6 +109,66 @@ public final class WithStep {
 	}
 
 	/**
+	 * Starts the main query's projection with one column referenced by raw alias and field name —
+	 * for a derived/CTE column that has no entity getter.
+	 *
+	 * @param alias the range-variable alias qualifying the column; must not be {@code null}
+	 * @param field the field name; must not be {@code null}
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public SelectStep<Object> SELECTㅤ(String alias, String field) {
+		return new SelectStep<>(attachCtes(new Q<Object>()).addSelect(Linq.typedCol(alias, field)));
+	}
+
+	/**
+	 * Starts the main query's projection with two columns referenced by raw alias and field name —
+	 * see {@link #SELECTㅤ(String, String)}.
+	 *
+	 * @param alias1 the range-variable alias qualifying the first column; must not be {@code null}
+	 * @param field1 the first field name; must not be {@code null}
+	 * @param alias2 the range-variable alias qualifying the second column; must not be {@code null}
+	 * @param field2 the second field name; must not be {@code null}
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public SelectStep<Object> SELECTㅤ(String alias1, String field1, String alias2, String field2) {
+		return new SelectStep<>(
+				attachCtes(new Q<Object>()).addSelect(Linq.typedCol(alias1, field1), Linq.typedCol(alias2, field2)));
+	}
+
+	/**
+	 * Starts the main query's projection with three columns referenced by raw alias and field name —
+	 * see {@link #SELECTㅤ(String, String)}.
+	 *
+	 * @param alias1 the range-variable alias qualifying the first column; must not be {@code null}
+	 * @param field1 the first field name; must not be {@code null}
+	 * @param alias2 the range-variable alias qualifying the second column; must not be {@code null}
+	 * @param field2 the second field name; must not be {@code null}
+	 * @param alias3 the range-variable alias qualifying the third column; must not be {@code null}
+	 * @param field3 the third field name; must not be {@code null}
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public SelectStep<Object> SELECTㅤ(String alias1, String field1, String alias2, String field2, String alias3,
+			String field3) {
+		return new SelectStep<>(attachCtes(new Q<Object>()).addSelect(Linq.typedCol(alias1, field1),
+				Linq.typedCol(alias2, field2), Linq.typedCol(alias3, field3)));
+	}
+
+	/**
+	 * Starts the main query's projection with a bare leading getter reference followed by a raw
+	 * alias-qualified field with no getter.
+	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param alias the range-variable alias qualifying the second column; must not be {@code null}
+	 * @param field the second column's field name; must not be {@code null}
+	 * @param <A>   the entity type owning the first column
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public <A> SelectStep<Object> SELECTㅤ(TypedCol<A, ?> first, String alias, String field) {
+		return new SelectStep<>(
+				attachCtes(new Q<Object>()).addSelect(Expr.typedCol(first), Linq.typedCol(alias, field)));
+	}
+
+	/**
 	 * Starts the main query as a whole-entity selection — shorthand for {@code SELECT(entity(type))}.
 	 * The selected type is threaded through to the resulting {@link Q}, so {@link Q#via} needs no cast.
 	 *

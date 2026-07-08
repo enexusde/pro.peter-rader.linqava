@@ -83,6 +83,16 @@ public final class WhereStep<R> {
 	public <T> R ㅤᆖㅤ(String alias, TypedCol<T, ?> r) { return cmp("=", Linq.typedCol(alias, r)); }
 
 	/**
+	 * Equality ({@code =}) with a right column referenced by raw alias and field name — for a
+	 * derived/CTE column that has no entity getter.
+	 *
+	 * @param alias the range-variable alias qualifying the right column; must not be {@code null}
+	 * @param field the right column's field name; must not be {@code null}
+	 * @return the query builder, for chaining
+	 */
+	public R ㅤᆖㅤ(String alias, String field) { return cmp("=", Linq.typedCol(alias, field)); }
+
+	/**
 	 * Less-than ({@code <}).
 	 *
 	 * @param r the right operand; must not be {@code null}
