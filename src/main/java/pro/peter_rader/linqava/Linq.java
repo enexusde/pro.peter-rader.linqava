@@ -988,6 +988,27 @@ public final class Linq {
 	}
 
 	/**
+	 * Starts a {@code SELECT} of a single {@code cast(...)} column whose Java result type is exactly
+	 * the {@link CastStep#ㅤASㅤ(Class) AS} target type — the type is threaded through to the
+	 * resulting {@link Q}, so {@link Q#via(jakarta.persistence.EntityManager)} needs no {@code Class}
+	 * argument, even though (unlike {@link #SELECTㅤ(ScalarExpr)}) the query may return any number of
+	 * rows.
+	 *
+	 * <p>
+	 * Example: {@code SELECT(CAST(Order::total).AS(String.class)).FROM(Order.class)} &rarr; a
+	 * {@code Q<String>}.
+	 * </p>
+	 *
+	 * @param cast the cast column, e.g. {@code CAST(Order::total).AS(String.class)}; must not be
+	 *             {@code null}
+	 * @param <T>  the Java type of the cast column
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T> SelectStep<T> SELECTㅤ(CastExpr<T> cast) {
+		return new SelectStep<>(new Q<>(cast.type).addSelect(cast));
+	}
+
+	/**
 	 * Starts a {@code SELECT} of a single scalar/aggregate whose Java result type
 	 * is statically known (e.g. {@link #COUNTㅤꁘ()}) — the type is threaded through
 	 * to the resulting {@link ScalarQ}, whose {@link ScalarQ#via(jakarta.persistence.EntityManager)}

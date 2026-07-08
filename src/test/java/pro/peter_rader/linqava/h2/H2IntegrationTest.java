@@ -252,11 +252,14 @@ public class H2IntegrationTest {
 		em.persist(new Order().setStatus("PAID").setTotal(42.0));
 		em.flush();
 
-		Q<Object> q = SELECTㅤ(ㅤCASTㅤ(Order::getTotal).ㅤASㅤ(String.class)).ㅤFROMㅤ(Order.class).ㅤAS("o")
+		Q<String> q = SELECTㅤ(ㅤCASTㅤ(Order::getTotal).ㅤASㅤ(String.class)).ㅤFROMㅤ(Order.class).ㅤAS("o")
 				.ㅤWHEREㅤ(Order::getStatus).ㅤᆖㅤ("PAID");
 		assertEquals("select cast(o.total as String) from pro.peter_rader.linqava.h2.Order o where o.status = 'PAID'", q.getUnsafeHql());
 
-		List<String> results = q.via(em, String.class);
+		List<String> results = new ArrayList<>();
+		for (String value : q.via(em)) {
+			results.add(value);
+		}
 
 		assertEquals(1, results.size());
 		assertTrue(results.get(0).startsWith("42"));

@@ -515,14 +515,14 @@ public class QueryTest {
 	// SELECT CAST(o.total AS String) FROM Order o
 	@Test
 	public void testCastColOverload() {
-		Q<Object> q = SELECTㅤ(ㅤCASTㅤ(Order::total).ㅤASㅤ(String.class)).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Q<String> q = SELECTㅤ(ㅤCASTㅤ(Order::total).ㅤASㅤ(String.class)).ㅤFROMㅤ(Order.class).ㅤAS("o");
 		assertEquals("select cast(o.total as String) from pro.peter_rader.linqava.Order o", q.getUnsafeHql());
 	}
 
 	// SELECT CAST(COUNT(o.id) AS String) FROM Order o
 	@Test
 	public void testCastOfExpressionOperand() {
-		Q<Object> q = SELECTㅤ(ㅤCASTㅤ(COUNT(Order::id)).ㅤASㅤ(String.class)).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		Q<String> q = SELECTㅤ(ㅤCASTㅤ(COUNT(Order::id)).ㅤASㅤ(String.class)).ㅤFROMㅤ(Order.class).ㅤAS("o");
 		assertEquals("select cast(count(o.id) as String) from pro.peter_rader.linqava.Order o", q.getUnsafeHql());
 	}
 

@@ -23,7 +23,10 @@ public final class CastStep {
 	}
 
 	/**
-	 * Finishes the cast with its target type.
+	 * Finishes the cast with its target type, threading {@code targetType} through as the cast
+	 * column's Java result type — so {@code SELECT(CAST(...).AS(String.class))} yields a
+	 * {@code Q<String>}, whose {@link Q#via(jakarta.persistence.EntityManager)} needs no explicit
+	 * {@code Class} argument even though the query may return any number of rows.
 	 *
 	 * <p>
 	 * {@code targetType} is rendered as its simple name (e.g. {@code String.class} &rarr;
@@ -32,10 +35,12 @@ public final class CastStep {
 	 * </p>
 	 *
 	 * @param targetType the target Java type; must not be {@code null}
-	 * @return the function call as an {@link Expr}
+	 * @param <T>        the Java type the cast expression is cast to
+	 * @return the cast column, for {@link Linq#SELECTㅤ(CastExpr)}
 	 */
-	public<T> Expr ㅤASㅤ(Class<?> targetType) {
+	public <T> CastExpr<T> ㅤASㅤ(Class<T> targetType) {
 		Expr e = expr;
-		return Expr.of(ctx -> "cast(" + e.render(ctx) + " as " + targetType.getSimpleName() + ")");
+		Expr rendered = Expr.of(ctx -> "cast(" + e.render(ctx) + " as " + targetType.getSimpleName() + ")");
+		return new CastExpr<>(targetType, rendered);
 	}
 }

@@ -1023,9 +1023,12 @@ public final class Q<E> {
 	 */
 	public Iterable<E> via(EntityManager em) {
 		Objects.requireNonNull(em, "em");
-		if (select.size() != 1 || !(select.get(0) instanceof EntityExpr) || entityType == null) {
-			throw new IllegalStateException("via(EntityManager) requires a query selecting a single entity, "
-					+ "e.g. SELECT(entity(Order.class)); for projections use em.createQuery(getUnsafeHql())");
+		boolean singleColumn = select.size() == 1
+				&& (select.get(0) instanceof EntityExpr || select.get(0) instanceof CastExpr);
+		if (!singleColumn || entityType == null) {
+			throw new IllegalStateException("via(EntityManager) requires a query selecting a single entity or "
+					+ "cast column, e.g. SELECT(entity(Order.class)) or SELECT(CAST(...).AS(String.class)); "
+					+ "for other projections use em.createQuery(getUnsafeHql())");
 		}
 		ParamCollector collector = new ParamCollector();
 		String hql = hqlFor(collector);
