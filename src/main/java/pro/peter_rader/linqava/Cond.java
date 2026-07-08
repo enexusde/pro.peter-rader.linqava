@@ -13,9 +13,9 @@ package pro.peter_rader.linqava;
  * {@code ᐳᆖ} (&gt;=), {@code ᐸᐳ} (&lt;&gt;).
  *
  * <p>A {@code Cond} is normally started via one of {@link Linq}'s static predicate functions
- * ({@link Linq#ㅤᆖㅤ(Col, Object)}, {@link Linq#ㅤᐳㅤ(Col, Object)}, {@link Linq#ㅤINㅤ(Col, Object)}, ...) —
+ * ({@link Linq#ㅤᆖㅤ(TypedCol, Object)}, {@link Linq#ㅤᐳㅤ(TypedCol, Object)}, {@link Linq#ㅤINㅤ(TypedCol, Object)}, ...) —
  * column-first, no lambda required — and then extended in place by chaining further instance
- * predicates. Each comparison/predicate has two overloads: a bare {@link Col} reference (type-checked
+ * predicates. Each comparison/predicate has two overloads: a bare {@link TypedCol} reference (type-checked
  * against its entity) as the left operand, or an {@link Object} ({@link Expr}, sub-query {@link Q},
  * literal or {@link Linq#param parameter}).</p>
  *
@@ -26,8 +26,8 @@ package pro.peter_rader.linqava;
  * // o.status = 'PAID' and o.total > 100
  * }</pre>
  *
- * <p>Null policy: no argument may be {@code null}. For null tests use {@link #ISㅤNULL(Col)} /
- * {@link #ISㅤNOTㅤNULL(Col)} instead of comparing against {@code null}.</p>
+ * <p>Null policy: no argument may be {@code null}. For null tests use {@link #ISㅤNULL(TypedCol)} /
+ * {@link #ISㅤNOTㅤNULL(TypedCol)} instead of comparing against {@code null}.</p>
  */
 public final class Cond {
 
@@ -51,7 +51,7 @@ public final class Cond {
 		return l;
 	}
 
-	private static <T> Expr col(Col<T> c) {
+	private static <T> Expr typedCol(TypedCol<T, ?> c) {
 		String prop = Names.property(c);
 		String entity = Names.entity(c);
 		return Expr.of(ctx -> {
@@ -79,7 +79,19 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᆖ(Col<T> l, Object r) { return add(cmp(col(l), "=", r, Names.property(l))); }
+	public <T> Cond ᆖ(TypedCol<T, ?> l, Object r) { return add(cmp(typedCol(l), "=", r, Names.property(l))); }
+
+	/**
+	 * Equality ({@code =}) with bare columns on both sides, e.g. {@code $.ᆖ(Order::a, Order::b)}
+	 * &rarr; {@code a = b} — no {@link Linq#typedCol(TypedCol) typedCol(...)} wrapping needed for the right operand.
+	 *
+	 * @param l   the left column getter; must not be {@code null}
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T, R> Cond ᆖ(TypedCol<T, ?> l, TypedCol<R, ?> r) { return add(cmp(typedCol(l), "=", typedCol(r), Names.property(l))); }
 
 	/**
 	 * Equality ({@code =}) with an expression left operand.
@@ -99,6 +111,16 @@ public final class Cond {
 	public Cond ᆖ(Object r) { return add(cmp(takePendingLeft(), "=", r)); }
 
 	/**
+	 * Equality ({@code =}) with a bare right column, against the left operand supplied by a preceding
+	 * {@link #ㅤANDㅤ(Object)}.
+	 *
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T> Cond ᆖ(TypedCol<T, ?> r) { return add(cmp(takePendingLeft(), "=", typedCol(r))); }
+
+	/**
 	 * Less-than ({@code <}), e.g. {@code $.ᐸ(Order::discount, 5)} &rarr; {@code o.discount < 5}.
 	 *
 	 * @param l   the left column getter; must not be {@code null}
@@ -106,7 +128,18 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐸ(Col<T> l, Object r) { return add(cmp(col(l), "<", r, Names.property(l))); }
+	public <T> Cond ᐸ(TypedCol<T, ?> l, Object r) { return add(cmp(typedCol(l), "<", r, Names.property(l))); }
+
+	/**
+	 * Less-than ({@code <}) with bare columns on both sides — see {@link #ᆖ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter; must not be {@code null}
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T, R> Cond ᐸ(TypedCol<T, ?> l, TypedCol<R, ?> r) { return add(cmp(typedCol(l), "<", typedCol(r), Names.property(l))); }
 
 	/**
 	 * Less-than ({@code <}) with an expression left operand.
@@ -126,6 +159,16 @@ public final class Cond {
 	public Cond ᐸ(Object r) { return add(cmp(takePendingLeft(), "<", r)); }
 
 	/**
+	 * Less-than ({@code <}) with a bare right column, against the left operand supplied by a
+	 * preceding {@link #ㅤANDㅤ(Object)}.
+	 *
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T> Cond ᐸ(TypedCol<T, ?> r) { return add(cmp(takePendingLeft(), "<", typedCol(r))); }
+
+	/**
 	 * Greater-than ({@code >}), e.g. {@code $.ᐳ(Order::total, 100)} &rarr; {@code o.total > 100}.
 	 *
 	 * @param l   the left column getter; must not be {@code null}
@@ -133,7 +176,18 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐳ(Col<T> l, Object r) { return add(cmp(col(l), ">", r, Names.property(l))); }
+	public <T> Cond ᐳ(TypedCol<T, ?> l, Object r) { return add(cmp(typedCol(l), ">", r, Names.property(l))); }
+
+	/**
+	 * Greater-than ({@code >}) with bare columns on both sides — see {@link #ᆖ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter; must not be {@code null}
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T, R> Cond ᐳ(TypedCol<T, ?> l, TypedCol<R, ?> r) { return add(cmp(typedCol(l), ">", typedCol(r), Names.property(l))); }
 
 	/**
 	 * Greater-than ({@code >}) with an expression left operand.
@@ -154,6 +208,16 @@ public final class Cond {
 	public Cond ㅤᐳㅤ(Object r) { return add(cmp(takePendingLeft(), ">", r)); }
 
 	/**
+	 * Greater-than ({@code >}) with a bare right column, against the left operand supplied by a
+	 * preceding {@link #ㅤANDㅤ(Object)}.
+	 *
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T> Cond ㅤᐳㅤ(TypedCol<T, ?> r) { return add(cmp(takePendingLeft(), ">", typedCol(r))); }
+
+	/**
 	 * Less-than-or-equal ({@code <=}), e.g. {@code $.ᐸᆖ(Order::discount, 50)} &rarr; {@code o.discount <= 50}.
 	 *
 	 * @param l   the left column getter; must not be {@code null}
@@ -161,7 +225,18 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐸᆖ(Col<T> l, Object r) { return add(cmp(col(l), "<=", r, Names.property(l))); }
+	public <T> Cond ᐸᆖ(TypedCol<T, ?> l, Object r) { return add(cmp(typedCol(l), "<=", r, Names.property(l))); }
+
+	/**
+	 * Less-than-or-equal ({@code <=}) with bare columns on both sides — see {@link #ᆖ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter; must not be {@code null}
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T, R> Cond ᐸᆖ(TypedCol<T, ?> l, TypedCol<R, ?> r) { return add(cmp(typedCol(l), "<=", typedCol(r), Names.property(l))); }
 
 	/**
 	 * Less-than-or-equal ({@code <=}) with an expression left operand.
@@ -181,6 +256,16 @@ public final class Cond {
 	public Cond ᐸᆖ(Object r) { return add(cmp(takePendingLeft(), "<=", r)); }
 
 	/**
+	 * Less-than-or-equal ({@code <=}) with a bare right column, against the left operand supplied by a
+	 * preceding {@link #ㅤANDㅤ(Object)}.
+	 *
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T> Cond ᐸᆖ(TypedCol<T, ?> r) { return add(cmp(takePendingLeft(), "<=", typedCol(r))); }
+
+	/**
 	 * Greater-than-or-equal ({@code >=}), e.g. {@code $.ᐳᆖ(Order::total, 1000)} &rarr; {@code o.total >= 1000}.
 	 *
 	 * @param l   the left column getter; must not be {@code null}
@@ -188,7 +273,18 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐳᆖ(Col<T> l, Object r) { return add(cmp(col(l), ">=", r, Names.property(l))); }
+	public <T> Cond ᐳᆖ(TypedCol<T, ?> l, Object r) { return add(cmp(typedCol(l), ">=", r, Names.property(l))); }
+
+	/**
+	 * Greater-than-or-equal ({@code >=}) with bare columns on both sides — see {@link #ᆖ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter; must not be {@code null}
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T, R> Cond ᐳᆖ(TypedCol<T, ?> l, TypedCol<R, ?> r) { return add(cmp(typedCol(l), ">=", typedCol(r), Names.property(l))); }
 
 	/**
 	 * Greater-than-or-equal ({@code >=}) with an expression left operand.
@@ -208,6 +304,16 @@ public final class Cond {
 	public Cond ᐳᆖ(Object r) { return add(cmp(takePendingLeft(), ">=", r)); }
 
 	/**
+	 * Greater-than-or-equal ({@code >=}) with a bare right column, against the left operand supplied by
+	 * a preceding {@link #ㅤANDㅤ(Object)}.
+	 *
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T> Cond ᐳᆖ(TypedCol<T, ?> r) { return add(cmp(takePendingLeft(), ">=", typedCol(r))); }
+
+	/**
 	 * Not-equal ({@code <>}), e.g. {@code $.ᐸᐳ(Order::status, "CANCELLED")} &rarr; {@code o.status <> 'CANCELLED'}.
 	 *
 	 * @param l   the left column getter; must not be {@code null}
@@ -215,7 +321,18 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ᐸᐳ(Col<T> l, Object r) { return add(cmp(col(l), "<>", r, Names.property(l))); }
+	public <T> Cond ᐸᐳ(TypedCol<T, ?> l, Object r) { return add(cmp(typedCol(l), "<>", r, Names.property(l))); }
+
+	/**
+	 * Not-equal ({@code <>}) with bare columns on both sides — see {@link #ᆖ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter; must not be {@code null}
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T, R> Cond ᐸᐳ(TypedCol<T, ?> l, TypedCol<R, ?> r) { return add(cmp(typedCol(l), "<>", typedCol(r), Names.property(l))); }
 
 	/**
 	 * Not-equal ({@code <>}) with an expression left operand.
@@ -234,6 +351,16 @@ public final class Cond {
 	 */
 	public Cond ᐸᐳ(Object r) { return add(cmp(takePendingLeft(), "<>", r)); }
 
+	/**
+	 * Not-equal ({@code <>}) with a bare right column, against the left operand supplied by a
+	 * preceding {@link #ㅤANDㅤ(Object)}.
+	 *
+	 * @param r   the right column getter; must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T> Cond ᐸᐳ(TypedCol<T, ?> r) { return add(cmp(takePendingLeft(), "<>", typedCol(r))); }
+
 	// ===== predicates =====
 
 	/**
@@ -245,7 +372,18 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond IN(Col<T> l, Object r) { return add(cmp(col(l), "in", r, Names.property(l))); }
+	public <T> Cond IN(TypedCol<T, ?> l, Object r) { return add(cmp(typedCol(l), "in", r, Names.property(l))); }
+
+	/**
+	 * Membership test ({@code in (...)}) with bare columns on both sides — see {@link #ᆖ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter; must not be {@code null}
+	 * @param r   the right column getter (typically collection-valued); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T, R> Cond IN(TypedCol<T, ?> l, TypedCol<R, ?> r) { return add(cmp(typedCol(l), "in", typedCol(r), Names.property(l))); }
 
 	/**
 	 * Membership test ({@code in (...)}) with an expression left operand.
@@ -264,7 +402,18 @@ public final class Cond {
 	 * @param <T> the entity type owning the left column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond LIKE(Col<T> l, Object r) { return add(cmp(col(l), "like", r, Names.property(l))); }
+	public <T> Cond LIKE(TypedCol<T, ?> l, Object r) { return add(cmp(typedCol(l), "like", r, Names.property(l))); }
+
+	/**
+	 * Pattern match ({@code like}) with bare columns on both sides — see {@link #ᆖ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter; must not be {@code null}
+	 * @param r   the right column getter (the pattern); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return this context, for chaining
+	 */
+	public <T, R> Cond LIKE(TypedCol<T, ?> l, TypedCol<R, ?> r) { return add(cmp(typedCol(l), "like", typedCol(r), Names.property(l))); }
 
 	/**
 	 * Pattern match ({@code like}) with an expression left operand.
@@ -295,7 +444,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ISㅤNULL(Col<T> c) { Expr e = col(c); return add(Expr.of(x -> e.render(x) + " is null")); }
+	public <T> Cond ISㅤNULL(TypedCol<T, ?> c) { Expr e = typedCol(c); return add(Expr.of(x -> e.render(x) + " is null")); }
 
 	/**
 	 * Not-null test ({@code is not null}).
@@ -304,7 +453,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ISㅤNOTㅤNULL(Col<T> c) { Expr e = col(c); return add(Expr.of(x -> e.render(x) + " is not null")); }
+	public <T> Cond ISㅤNOTㅤNULL(TypedCol<T, ?> c) { Expr e = typedCol(c); return add(Expr.of(x -> e.render(x) + " is not null")); }
 
 	/**
 	 * Empty-collection test ({@code is empty}).
@@ -313,7 +462,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ISㅤEMPTY(Col<T> c) { Expr e = col(c); return add(Expr.of(x -> e.render(x) + " is empty")); }
+	public <T> Cond ISㅤEMPTY(TypedCol<T, ?> c) { Expr e = typedCol(c); return add(Expr.of(x -> e.render(x) + " is empty")); }
 
 	/**
 	 * Non-empty-collection test ({@code is not empty}), e.g. {@code $.ISㅤNOTㅤEMPTY(Customer::orders)}
@@ -323,7 +472,7 @@ public final class Cond {
 	 * @param <T> the entity type owning the column
 	 * @return this context, for chaining
 	 */
-	public <T> Cond ISㅤNOTㅤEMPTY(Col<T> c) { Expr e = col(c); return add(Expr.of(x -> e.render(x) + " is not empty")); }
+	public <T> Cond ISㅤNOTㅤEMPTY(TypedCol<T, ?> c) { Expr e = typedCol(c); return add(Expr.of(x -> e.render(x) + " is not empty")); }
 
 	/**
 	 * Non-empty-collection test ({@code is not empty}) with an expression operand.
@@ -335,7 +484,7 @@ public final class Cond {
 
 	/**
 	 * Collection membership ({@code value member of collection}), e.g.
-	 * {@code $.MEMBERㅤOF(param("product"), col(Customer::wishlist))} &rarr; {@code :product member of c.wishlist}.
+	 * {@code $.MEMBERㅤOF(param("product"), typedCol(Customer::wishlist))} &rarr; {@code :product member of c.wishlist}.
 	 *
 	 * @param value      the element expression (literal/{@link Linq#param(String)}); must not be {@code null}
 	 * @param collection the collection-valued expression; must not be {@code null}
@@ -365,6 +514,16 @@ public final class Cond {
 	 * @return this context, for chaining
 	 */
 	public Cond ㅤANDㅤ(Object left) { pending = "and"; pendingLeft = Expr.val(left); return this; }
+
+	/**
+	 * Sets the connector for the next predicate to {@code and} and supplies a bare column as the left
+	 * operand — see {@link #ㅤANDㅤ(Object)}.
+	 *
+	 * @param left the left operand's column getter (method reference); must not be {@code null}
+	 * @param <T>  the entity type owning the column
+	 * @return this context, for chaining
+	 */
+	public <T> Cond ㅤANDㅤ(TypedCol<T, ?> left) { pending = "and"; pendingLeft = typedCol(left); return this; }
 
 	/**
 	 * Sets the connector for the next predicate to {@code or}.

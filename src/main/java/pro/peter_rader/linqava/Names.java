@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 /**
- * Recovers the property name and declaring entity behind a {@link Col} method
+ * Recovers the property name and declaring entity behind a {@link TypedCol} method
  * reference.
  */
 public final class Names {
@@ -51,7 +51,7 @@ public final class Names {
 	 * where the character after the prefix isn't uppercase, e.g. {@code get()} or
 	 * {@code isolate()}) is returned unchanged.
 	 */
-	static String property(Col<?> col) {
+	static String property(Object col) {
 		return toPropertyName(serialized(col).getImplMethodName());
 	}
 
@@ -64,7 +64,7 @@ public final class Names {
 	 * The simple name of the entity declaring the getter, e.g. {@code Order::id} ->
 	 * {@code "Order"}.
 	 */
-	static String entity(Col<?> col) {
+	static String entity(Object col) {
 		String implClass = serialized(col).getImplClass(); // e.g. "linqava/Order"
 		int slash = implClass.lastIndexOf('/');
 		return slash < 0 ? implClass : implClass.substring(slash + 1);

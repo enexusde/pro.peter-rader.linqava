@@ -50,6 +50,18 @@ public final class WithStep {
 	}
 
 	/**
+	 * Adds another common table expression whose definition ends in a {@code group by} — see
+	 * {@link Q#GROUPㅤBY(Object...)} for why that returns {@link Grouped} rather than {@code Q<?>}.
+	 *
+	 * @param name       the CTE name; must not be {@code null} or blank
+	 * @param definition the defining sub-query; must not be {@code null}
+	 * @return this {@code WITH} phase, for chaining
+	 */
+	public WithStep WITH(String name, Grouped<?> definition) {
+		return WITH(name, definition.unwrap());
+	}
+
+	/**
 	 * Adds a recursive common table expression and marks the {@code WITH} clause recursive.
 	 *
 	 * @param name       the CTE name; must not be {@code null} or blank
@@ -59,6 +71,19 @@ public final class WithStep {
 	public WithStep WITHㅤRECURSIVE(String name, Q<?> definition) {
 		ctes.add(new PendingCte(name, definition, true));
 		return this;
+	}
+
+	/**
+	 * Adds a recursive common table expression whose definition ends in a {@code group by} — see
+	 * {@link #WITH(String, Grouped)}.
+	 *
+	 * @param name       the CTE name; must not be {@code null} or blank
+	 * @param definition the recursive defining sub-query (anchor {@code UNION ALL} step); must not be
+	 *                   {@code null}
+	 * @return this {@code WITH} phase, for chaining
+	 */
+	public WithStep WITHㅤRECURSIVE(String name, Grouped<?> definition) {
+		return WITHㅤRECURSIVE(name, definition.unwrap());
 	}
 
 	/**
@@ -79,7 +104,7 @@ public final class WithStep {
 	 * @param <A>   the entity type owning the first column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public <A> SelectStep<Object> SELECTㅤ(Col<A> first, Object... rest) {
+	public <A> SelectStep<Object> SELECTㅤ(TypedCol<A, ?> first, Object... rest) {
 		return new SelectStep<>(attachCtes(new Q<Object>()).addSelect(first, rest));
 	}
 

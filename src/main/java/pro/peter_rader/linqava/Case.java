@@ -73,7 +73,7 @@ public final class Case {
 		/**
 		 * Supplies the result for the preceding {@link Case#WHEN(Cond) WHEN}.
 		 *
-		 * @param value the result expression/literal, e.g. {@code "GOLD"} or {@code col(Order::total)};
+		 * @param value the result expression/literal, e.g. {@code "GOLD"} or {@code typedCol(Order::total)};
 		 *              must not be {@code null}
 		 * @return the next step, from which another {@code WHEN}, an {@code ELSE} or {@code END} is allowed
 		 */
@@ -89,8 +89,8 @@ public final class Case {
 		 * @param <T>   the entity type owning the column
 		 * @return the next step, from which another {@code WHEN}, an {@code ELSE} or {@code END} is allowed
 		 */
-		public <T> Body THEN(Col<T> value) {
-			thens.add(Expr.col(value));
+		public <T> Body THEN(TypedCol<T, ?> value) {
+			thens.add(Expr.typedCol(value));
 			return new Body();
 		}
 	}
@@ -120,6 +120,18 @@ public final class Case {
 		 */
 		public End ELSE(Object value) {
 			elseValue = Expr.val(value);
+			return new End();
+		}
+
+		/**
+		 * Sets the optional {@code ELSE value} branch as a bare column reference.
+		 *
+		 * @param value the default result column getter (method reference); must not be {@code null}
+		 * @param <T>   the entity type owning the column
+		 * @return the final step, from which only {@link End#END() END} is allowed
+		 */
+		public <T> End ELSE(TypedCol<T, ?> value) {
+			elseValue = Expr.typedCol(value);
 			return new End();
 		}
 

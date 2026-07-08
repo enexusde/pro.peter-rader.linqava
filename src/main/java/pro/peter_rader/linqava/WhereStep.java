@@ -42,13 +42,13 @@ public final class WhereStep<R> {
 	/**
 	 * Navigates from the left operand into a nested association member, e.g.
 	 * {@code AND(Car::plate).ᐧ(SerialPlate::id)} &rarr; left operand {@code c.plate.id} — shorthand for
-	 * {@code AND(col(Car::plate).ᐧ(SerialPlate::id))}.
+	 * {@code AND(typedCol(Car::plate).ᐧ(SerialPlate::id))}.
 	 *
 	 * @param getter the member field getter (method reference); must not be {@code null}
 	 * @param <T>    the type owning the getter
 	 * @return the pending comparison with the extended left operand, awaiting an operator
 	 */
-	public <T> WhereStep<R> ㅤᐅㅤ(Col<T> getter) {
+	public <T> WhereStep<R> ㅤᐅㅤ(TypedCol<T, ?> getter) {
 		return new WhereStep<>(left.ᐧ(getter), Names.property(getter), connector, sink);
 	}
 
@@ -61,15 +61,26 @@ public final class WhereStep<R> {
 	public R ㅤᆖㅤ(Object r) { return cmp("=", r); }
 
 	/**
+	 * Equality ({@code =}) with a bare right column, e.g. {@code WHERE(Order::a).ㅤᆖㅤ(Order::b)}
+	 * &rarr; {@code = b} (or {@code = alias.b} if {@code Order} has a declared alias) — no
+	 * {@link Linq#typedCol(TypedCol) typedCol(...)} wrapping needed for the right operand.
+	 *
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return the query builder, for chaining
+	 */
+	public <T> R ㅤᆖㅤ(TypedCol<T, ?> r) { return cmp("=", Expr.typedCol(r)); }
+
+	/**
 	 * Equality ({@code =}) with an alias-qualified right column, e.g. {@code ᆖ("o", Order::customerId)}
-	 * &rarr; {@code = o.customerId} — shorthand for {@code ᆖ(col("o", Order::customerId))}.
+	 * &rarr; {@code = o.customerId} — shorthand for {@code ᆖ(typedCol("o", Order::customerId))}.
 	 *
 	 * @param alias the range-variable alias to qualify the right column with; must not be {@code null}
 	 * @param r     the right column getter (method reference); must not be {@code null}
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> R ㅤᆖㅤ(String alias, Col<T> r) { return cmp("=", Linq.col(alias, r)); }
+	public <T> R ㅤᆖㅤ(String alias, TypedCol<T, ?> r) { return cmp("=", Linq.typedCol(alias, r)); }
 
 	/**
 	 * Less-than ({@code <}).
@@ -80,6 +91,15 @@ public final class WhereStep<R> {
 	public R ㅤᐸㅤ(Object r) { return cmp("<", r); }
 
 	/**
+	 * Less-than ({@code <}) with a bare right column — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return the query builder, for chaining
+	 */
+	public <T> R ㅤᐸㅤ(TypedCol<T, ?> r) { return cmp("<", Expr.typedCol(r)); }
+
+	/**
 	 * Less-than ({@code <}) with an alias-qualified right column.
 	 *
 	 * @param alias the range-variable alias to qualify the right column with; must not be {@code null}
@@ -87,7 +107,7 @@ public final class WhereStep<R> {
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> R ㅤᐸㅤ(String alias, Col<T> r) { return cmp("<", Linq.col(alias, r)); }
+	public <T> R ㅤᐸㅤ(String alias, TypedCol<T, ?> r) { return cmp("<", Linq.typedCol(alias, r)); }
 
 	/**
 	 * Greater-than ({@code >}).
@@ -98,6 +118,15 @@ public final class WhereStep<R> {
 	public R ㅤᐳㅤ(Object r) { return cmp(">", r); }
 
 	/**
+	 * Greater-than ({@code >}) with a bare right column — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return the query builder, for chaining
+	 */
+	public <T> R ㅤᐳㅤ(TypedCol<T, ?> r) { return cmp(">", Expr.typedCol(r)); }
+
+	/**
 	 * Greater-than ({@code >}) with an alias-qualified right column.
 	 *
 	 * @param alias the range-variable alias to qualify the right column with; must not be {@code null}
@@ -105,7 +134,7 @@ public final class WhereStep<R> {
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> R ㅤᐳㅤ(String alias, Col<T> r) { return cmp(">", Linq.col(alias, r)); }
+	public <T> R ㅤᐳㅤ(String alias, TypedCol<T, ?> r) { return cmp(">", Linq.typedCol(alias, r)); }
 
 	/**
 	 * Less-than-or-equal ({@code <=}).
@@ -116,6 +145,15 @@ public final class WhereStep<R> {
 	public R ᐸᆖ(Object r) { return cmp("<=", r); }
 
 	/**
+	 * Less-than-or-equal ({@code <=}) with a bare right column — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return the query builder, for chaining
+	 */
+	public <T> R ᐸᆖ(TypedCol<T, ?> r) { return cmp("<=", Expr.typedCol(r)); }
+
+	/**
 	 * Less-than-or-equal ({@code <=}) with an alias-qualified right column.
 	 *
 	 * @param alias the range-variable alias to qualify the right column with; must not be {@code null}
@@ -123,7 +161,7 @@ public final class WhereStep<R> {
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> R ᐸᆖ(String alias, Col<T> r) { return cmp("<=", Linq.col(alias, r)); }
+	public <T> R ᐸᆖ(String alias, TypedCol<T, ?> r) { return cmp("<=", Linq.typedCol(alias, r)); }
 
 	/**
 	 * Greater-than-or-equal ({@code >=}).
@@ -134,6 +172,15 @@ public final class WhereStep<R> {
 	public R ᐳᆖ(Object r) { return cmp(">=", r); }
 
 	/**
+	 * Greater-than-or-equal ({@code >=}) with a bare right column — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return the query builder, for chaining
+	 */
+	public <T> R ᐳᆖ(TypedCol<T, ?> r) { return cmp(">=", Expr.typedCol(r)); }
+
+	/**
 	 * Greater-than-or-equal ({@code >=}) with an alias-qualified right column.
 	 *
 	 * @param alias the range-variable alias to qualify the right column with; must not be {@code null}
@@ -141,7 +188,7 @@ public final class WhereStep<R> {
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> R ᐳᆖ(String alias, Col<T> r) { return cmp(">=", Linq.col(alias, r)); }
+	public <T> R ᐳᆖ(String alias, TypedCol<T, ?> r) { return cmp(">=", Linq.typedCol(alias, r)); }
 
 	/**
 	 * Not-equal ({@code <>}).
@@ -152,6 +199,15 @@ public final class WhereStep<R> {
 	public R ᐸᐳ(Object r) { return cmp("<>", r); }
 
 	/**
+	 * Not-equal ({@code <>}) with a bare right column — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return the query builder, for chaining
+	 */
+	public <T> R ᐸᐳ(TypedCol<T, ?> r) { return cmp("<>", Expr.typedCol(r)); }
+
+	/**
 	 * Not-equal ({@code <>}) with an alias-qualified right column.
 	 *
 	 * @param alias the range-variable alias to qualify the right column with; must not be {@code null}
@@ -159,7 +215,7 @@ public final class WhereStep<R> {
 	 * @param <T>   the entity type owning the right column
 	 * @return the query builder, for chaining
 	 */
-	public <T> R ᐸᐳ(String alias, Col<T> r) { return cmp("<>", Linq.col(alias, r)); }
+	public <T> R ᐸᐳ(String alias, TypedCol<T, ?> r) { return cmp("<>", Linq.typedCol(alias, r)); }
 
 	/**
 	 * Membership test ({@code in (...)}), e.g. {@code WHERE(Product::categoryId).IN(subquery)}.
@@ -170,12 +226,50 @@ public final class WhereStep<R> {
 	public R IN(Object r) { return cmp("in", r); }
 
 	/**
+	 * Membership test ({@code in (...)}) with a bare right column — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return the query builder, for chaining
+	 */
+	public <T> R IN(TypedCol<T, ?> r) { return cmp("in", Expr.typedCol(r)); }
+
+	/**
+	 * Membership test ({@code in (...)}) with an alias-qualified right column.
+	 *
+	 * @param alias the range-variable alias to qualify the right column with; must not be {@code null}
+	 * @param r     the right column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the right column
+	 * @return the query builder, for chaining
+	 */
+	public <T> R IN(String alias, TypedCol<T, ?> r) { return cmp("in", Linq.typedCol(alias, r)); }
+
+	/**
 	 * Pattern match ({@code like}), e.g. {@code WHERE(Supplier::iban).LIKE(param("p"))}.
 	 *
 	 * @param r the pattern (literal/{@link Linq#param(String)}); must not be {@code null}
 	 * @return the query builder, for chaining
 	 */
 	public R LIKE(Object r) { return cmp("like", r); }
+
+	/**
+	 * Pattern match ({@code like}) with a bare right column — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the right column
+	 * @return the query builder, for chaining
+	 */
+	public <T> R LIKE(TypedCol<T, ?> r) { return cmp("like", Expr.typedCol(r)); }
+
+	/**
+	 * Pattern match ({@code like}) with an alias-qualified right column.
+	 *
+	 * @param alias the range-variable alias to qualify the right column with; must not be {@code null}
+	 * @param r     the right column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the right column
+	 * @return the query builder, for chaining
+	 */
+	public <T> R LIKE(String alias, TypedCol<T, ?> r) { return cmp("like", Linq.typedCol(alias, r)); }
 
 	/**
 	 * Null test ({@code is null}), e.g. {@code WHERE(Employee::managerId).ISㅤNULL()}.

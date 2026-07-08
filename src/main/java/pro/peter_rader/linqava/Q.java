@@ -109,8 +109,8 @@ public final class Q<E> {
 		return this;
 	}
 
-	<A> Q<E> addSelect(Col<A> first, Object... rest) {
-		select.add(Expr.col(first));
+	<A> Q<E> addSelect(TypedCol<A, ?> first, Object... rest) {
+		select.add(Expr.typedCol(first));
 		for (Object o : rest) {
 			select.add(Expr.val(o));
 		}
@@ -179,22 +179,38 @@ public final class Q<E> {
 	 * @param <T>  the owning entity type
 	 * @return this builder, for chaining
 	 */
-	public <T> Q<E> JOIN(Col<T> path) {
+	public <T> Q<E> JOIN(TypedCol<T, ?> path) {
 		return addJoin("join", src(null, false, pathExpr(path)));
 	}
 
 	/**
 	 * Inner-joins along an alias-qualified association path ({@code join alias.assoc}) — the
-	 * counterpart to {@link #JOIN(Col) JOIN(Col)} for a path whose owner is not the query's root but
-	 * a previously joined alias (so its entity type carries no queryable alias of its own).
+	 * counterpart to {@link #JOIN(TypedCol) JOIN(TypedCol)} for a path whose owner is not the
+	 * query's root but a previously joined alias (so its entity type carries no queryable alias of
+	 * its own).
 	 *
 	 * <p>
-	 * Example: {@code JOIN(col("kw", TranslationKeyword::translationValues)).AS("tv")} &rarr;
+	 * Example: {@code JOIN("kw", TranslationKeyword::translationValues).AS("tv")} &rarr;
 	 * {@code join kw.translationValues tv}.
 	 * </p>
 	 *
-	 * @param path the alias-qualified path, typically {@link Linq#col(String, Col)}; must not be
-	 *             {@code null}
+	 * @param alias the range-variable alias qualifying {@code path}'s owner; must not be
+	 *              {@code null}
+	 * @param path  the association getter (method reference); must not be {@code null}
+	 * @param <T>   the owning entity type
+	 * @return this builder, for chaining
+	 */
+	public <T> Q<E> JOIN(String alias, TypedCol<T, ?> path) {
+		return addJoin("join", src(null, false, Linq.typedCol(alias, path)));
+	}
+
+	/**
+	 * Inner-joins along an alias-qualified association path
+	 * ({@code join alias.assoc}) — the counterpart to {@link #JOIN(TypedCol) JOIN(TypedCol)}
+	 * for a path whose owner is not the query's root but a previously joined alias
+	 * (so its entity type carries no queryable alias of its own).
+	 *
+	 * @param path the alias-qualified path as an already-built expression; must not be {@code null}
 	 * @return this builder, for chaining
 	 */
 	public Q<E> JOIN(Object path) {
@@ -229,23 +245,39 @@ public final class Q<E> {
 	 * @param <T>  the owning entity type
 	 * @return this builder, for chaining
 	 */
-	public <T> Q<E> LEFTㅤJOIN(Col<T> path) {
+	public <T> Q<E> LEFTㅤJOIN(TypedCol<T, ?> path) {
 		return addJoin("left join", src(null, false, pathExpr(path)));
 	}
 
 	/**
 	 * Left-outer-joins along an alias-qualified association path ({@code left join alias.assoc}) —
-	 * the counterpart to {@link #LEFTㅤJOIN(Col) LEFT JOIN(Col)} for a path whose owner is not the
-	 * query's root but a previously joined alias (so its entity type carries no queryable alias of
-	 * its own).
+	 * the counterpart to {@link #LEFTㅤJOIN(TypedCol) LEFT JOIN(TypedCol)} for a path whose owner is
+	 * not the query's root but a previously joined alias (so its entity type carries no queryable
+	 * alias of its own).
 	 *
 	 * <p>
-	 * Example: {@code LEFTㅤJOIN(col("kw", TranslationKeyword::translationValues)).AS("tv")} &rarr;
+	 * Example: {@code LEFTㅤJOIN("kw", TranslationKeyword::translationValues).AS("tv")} &rarr;
 	 * {@code left join kw.translationValues tv}.
 	 * </p>
 	 *
-	 * @param path the alias-qualified path, typically {@link Linq#col(String, Col)}; must not be
-	 *             {@code null}
+	 * @param alias the range-variable alias qualifying {@code path}'s owner; must not be
+	 *              {@code null}
+	 * @param path  the association getter (method reference); must not be {@code null}
+	 * @param <T>   the owning entity type
+	 * @return this builder, for chaining
+	 */
+	public <T> Q<E> LEFTㅤJOIN(String alias, TypedCol<T, ?> path) {
+		return addJoin("left join", src(null, false, Linq.typedCol(alias, path)));
+	}
+
+	/**
+	 * Left-outer-joins along an alias-qualified association path
+	 * ({@code left join alias.assoc}) — the counterpart to {@link #LEFTㅤJOIN(TypedCol)
+	 * LEFT JOIN(TypedCol)} for a path whose owner is not the query's root but a
+	 * previously joined alias (so its entity type carries no queryable alias of its
+	 * own).
+	 *
+	 * @param path the alias-qualified path as an already-built expression; must not be {@code null}
 	 * @return this builder, for chaining
 	 */
 	public Q<E> LEFTㅤJOIN(Object path) {
@@ -256,13 +288,13 @@ public final class Q<E> {
 	 * Inner fetch-join along a path ({@code join fetch owner.assoc}).
 	 *
 	 * <p>
-	 * Example: {@code JOINㅤFETCH(col(Customer::orders)).AS("o")} &rarr;
+	 * Example: {@code JOINㅤFETCH(typedCol(Customer::orders)).AS("o")} &rarr;
 	 * {@code join fetch c.orders o}.
 	 * </p>
 	 *
 	 * @param path the fetch path; the first element is used. Must not be
 	 *             {@code null} or empty; pass a single
-	 *             {@link Linq#col(Col)}/{@link Linq#col(String)} expression
+	 *             {@link Linq#typedCol(TypedCol)}/{@link Linq#typedCol(String)} expression
 	 * @return this builder, for chaining
 	 */
 	public Q<E> JOINㅤFETCH(Object... path) {
@@ -290,13 +322,13 @@ public final class Q<E> {
 	 * @param <T>  the owning entity type
 	 * @return this builder, for chaining
 	 */
-	public <T> Q<E> LEFTㅤJOINㅤFETCH(Col<T> path) {
-		return addJoin("left join fetch", src(null, false, Expr.col(path)));
+	public <T> Q<E> LEFTㅤJOINㅤFETCH(TypedCol<T, ?> path) {
+		return addJoin("left join fetch", src(null, false, Expr.typedCol(path)));
 	}
 
 	/**
 	 * The {@code on} condition for the most recently added join, from a pre-built
-	 * predicate (see {@link Linq#ㅤANDㅤ(Cond...)} / {@link Linq#ㅤᆖㅤ(Col, Object)}).
+	 * predicate (see {@link Linq#ㅤANDㅤ(Cond...)} / {@link Linq#ㅤᆖㅤ(TypedCol, Object)}).
 	 *
 	 * @param predicate the join condition; must not be {@code null}
 	 * @return this builder, for chaining
@@ -314,7 +346,7 @@ public final class Q<E> {
 	 *
 	 * <p>
 	 * Example:
-	 * {@code .JOIN(Customer.class).AS("c").ON(Customer::id).ᆖ(col("o", Order::customerId))}.
+	 * {@code .JOIN(Customer.class).AS("c").ON(Customer::id).ᆖ(typedCol("o", Order::customerId))}.
 	 * </p>
 	 *
 	 * @param col the left column getter (method reference); must not be
@@ -323,9 +355,9 @@ public final class Q<E> {
 	 * @return the pending comparison, awaiting an operator
 	 * @throws IndexOutOfBoundsException if no join has been added yet
 	 */
-	public <T> WhereStep<Q<E>> ㅤONㅤ(Col<T> col) {
+	public <T> WhereStep<Q<E>> ㅤONㅤ(TypedCol<T, ?> col) {
 		Join j = joins.get(joins.size() - 1);
-		return new WhereStep<>(Expr.col(col), Names.property(col), "and", (predicate, connector) -> {
+		return new WhereStep<>(Expr.typedCol(col), Names.property(col), "and", (predicate, connector) -> {
 			j.on = predicate;
 			return this;
 		});
@@ -362,8 +394,8 @@ public final class Q<E> {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<Q<E>> ㅤWHEREㅤ(Col<T> col) {
-		return where(Expr.col(col), Names.property(col), "and");
+	public <T> WhereStep<Q<E>> ㅤWHEREㅤ(TypedCol<T, ?> col) {
+		return where(Expr.typedCol(col), Names.property(col), "and");
 	}
 
 	/**
@@ -382,8 +414,8 @@ public final class Q<E> {
 	 * @param <T>   the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<Q<E>> ㅤWHEREㅤ(String alias, Col<T> col) {
-		return where(Linq.col(alias, col), Names.property(col), "and");
+	public <T> WhereStep<Q<E>> ㅤWHEREㅤ(String alias, TypedCol<T, ?> col) {
+		return where(Linq.typedCol(alias, col), Names.property(col), "and");
 	}
 
 	/**
@@ -392,7 +424,7 @@ public final class Q<E> {
 	 * follow with a comparison operator on the returned {@link WhereStep}.
 	 *
 	 * <p>
-	 * Example: {@code WHERE(col("r", "rnk")).ᆖ(1)} &rarr; {@code where r.rnk = 1}.
+	 * Example: {@code WHERE(typedCol("r", "rnk")).ᆖ(1)} &rarr; {@code where r.rnk = 1}.
 	 * </p>
 	 *
 	 * @param left the left operand; must not be {@code null}
@@ -417,8 +449,8 @@ public final class Q<E> {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<Q<E>> ㅤANDㅤ(Col<T> col) {
-		return where(Expr.col(col), Names.property(col), "and");
+	public <T> WhereStep<Q<E>> ㅤANDㅤ(TypedCol<T, ?> col) {
+		return where(Expr.typedCol(col), Names.property(col), "and");
 	}
 
 	/**
@@ -433,8 +465,8 @@ public final class Q<E> {
 	 * @param <T>   the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<Q<E>> ㅤANDㅤ(String alias, Col<T> col) {
-		return where(Linq.col(alias, col), Names.property(col), "and");
+	public <T> WhereStep<Q<E>> ㅤANDㅤ(String alias, TypedCol<T, ?> col) {
+		return where(Linq.typedCol(alias, col), Names.property(col), "and");
 	}
 
 	/**
@@ -458,8 +490,8 @@ public final class Q<E> {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<Q<E>> ㅤORㅤ(Col<T> col) {
-		return where(Expr.col(col), Names.property(col), "or");
+	public <T> WhereStep<Q<E>> ㅤORㅤ(TypedCol<T, ?> col) {
+		return where(Expr.typedCol(col), Names.property(col), "or");
 	}
 
 	/**
@@ -474,8 +506,8 @@ public final class Q<E> {
 	 * @param <T>   the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<Q<E>> ㅤORㅤ(String alias, Col<T> col) {
-		return where(Linq.col(alias, col), Names.property(col), "or");
+	public <T> WhereStep<Q<E>> ㅤORㅤ(String alias, TypedCol<T, ?> col) {
+		return where(Linq.typedCol(alias, col), Names.property(col), "or");
 	}
 
 	/**
@@ -507,38 +539,66 @@ public final class Q<E> {
 	}
 
 	/**
-	 * The {@code group by} clause.
+	 * The {@code group by} clause. A query has exactly one {@code group by} clause
+	 * grouping by however many columns it needs, so this returns {@link Grouped}
+	 * instead of {@code Q<E>} — a narrower type that offers {@code HAVING}/
+	 * {@code ORDER BY}/{@code LIMIT}/{@code OFFSET}/{@code via}/{@code getHql} but
+	 * deliberately not {@code GROUPㅤBY} itself, so a second, accidental
+	 * {@code .GROUPㅤBY(...)} call fails to compile instead of silently merging into
+	 * this same clause. Pass every grouping column to this one call (it accepts
+	 * varargs).
 	 *
 	 * <p>
-	 * Example: {@code GROUPㅤBY(col("o", Order::customerId))} &rarr;
-	 * {@code group by o.customerId}.
+	 * Example:
+	 * {@code GROUPㅤBY(typedCol("o", Order::customerId), typedCol("o", Order::status))} &rarr;
+	 * {@code group by o.customerId, o.status}.
 	 * </p>
 	 *
 	 * @param cols the grouping expressions, in order; must not be {@code null} or
 	 *             empty
-	 * @return this builder, for chaining
+	 * @return the {@code group by} phase, offering the clauses that may still
+	 *         follow
+	 * @throws IllegalStateException if {@code GROUPㅤBY} was already called on this
+	 *                               query (only reachable if the fluent return
+	 *                               value of an earlier call was discarded and the
+	 *                               original {@code Q} reference reused)
 	 */
-	public Q<E> GROUPㅤBY(Object... cols) {
+	public Grouped<E> GROUPㅤBY(Object... cols) {
+		requireNoGroupByYet();
 		for (Object o : cols) {
 			groupBy.add(Expr.val(o));
 		}
-		return this;
+		return new Grouped<>(this);
 	}
 
 	/**
 	 * The {@code group by} clause, with type-safe bare column references, e.g.
-	 * {@code GROUPㅤBY(Order::customerId)} &rarr; {@code group by o.customerId}.
+	 * {@code GROUPㅤBY(Order::customerId, Order::status)} &rarr;
+	 * {@code group by o.customerId, o.status}. Like {@link #GROUPㅤBY(Object...)},
+	 * returns {@link Grouped} so a repeated {@code GROUPㅤBY} call fails to compile.
 	 *
 	 * @param cols the grouping columns, in order; must not be {@code null} or empty
 	 * @param <T>  the entity type owning the columns
-	 * @return this builder, for chaining
+	 * @return the {@code group by} phase, offering the clauses that may still
+	 *         follow
+	 * @throws IllegalStateException if {@code GROUPㅤBY} was already called on this
+	 *                               query (see {@link #GROUPㅤBY(Object...)})
 	 */
 	@SafeVarargs
-	public final <T> Q<E> GROUPㅤBY(Col<T>... cols) {
-		for (Col<T> col : cols) {
-			groupBy.add(Expr.col(col));
+	public final <T> Grouped<E> GROUPㅤBY(TypedCol<T, ?>... cols) {
+		requireNoGroupByYet();
+		for (TypedCol<T, ?> col : cols) {
+			groupBy.add(Expr.typedCol(col));
 		}
-		return this;
+		return new Grouped<>(this);
+	}
+
+	private void requireNoGroupByYet() {
+		if (!groupBy.isEmpty()) {
+			throw new IllegalStateException("GROUPㅤBY(...) was already called on this query — pass every "
+					+ "grouping column to a single GROUPㅤBY(...) call instead of chaining it repeatedly, "
+					+ "e.g. GROUPㅤBY(colA, colB) instead of GROUPㅤBY(colA).GROUPㅤBY(colB)");
+		}
 	}
 
 	/**
@@ -575,10 +635,20 @@ public final class Q<E> {
 	 */
 	public WhereStep<Q<E>> HAVING(Object left) {
 		Expr l = Expr.val(left);
-		return new WhereStep<>(l, null, "and", (predicate, connector) -> {
-			having = (having == null) ? predicate : Expr.bin(having, connector, predicate);
-			return this;
-		});
+		return new WhereStep<>(l, null, "and", (predicate, connector) -> appendHaving(predicate, connector));
+	}
+
+	/**
+	 * Folds a finished predicate into the {@code having} clause, joined with
+	 * {@code connector} if one is already present. Package-private: reused by
+	 * {@link #HAVING(Object)} above and by {@link Grouped}'s own {@code HAVING}
+	 * entry point, which builds its own {@link WhereStep} (typed to keep its fluent
+	 * chain on {@code Grouped} instead of {@code Q}) but still needs to mutate this
+	 * same underlying clause.
+	 */
+	Q<E> appendHaving(Expr predicate, String connector) {
+		having = (having == null) ? predicate : Expr.bin(having, connector, predicate);
+		return this;
 	}
 
 	/**
@@ -586,7 +656,7 @@ public final class Q<E> {
 	 * an element for direction.
 	 *
 	 * <p>
-	 * Example: {@code ORDERㅤBY(SUM(col(Order::total)).DESC())} &rarr;
+	 * Example: {@code ORDERㅤBY(SUM(typedCol(Order::total)).DESC())} &rarr;
 	 * {@code order by sum(o.total) desc}.
 	 * </p>
 	 *
@@ -599,6 +669,22 @@ public final class Q<E> {
 			orderBy.add(Expr.val(o));
 		}
 		return this;
+	}
+
+	/**
+	 * The {@code order by} clause, started from a bare column getter; follow with
+	 * {@link OrderByStep#DESC()}/{@link OrderByStep#ASC()} to supply the direction.
+	 *
+	 * <p>
+	 * Example: {@code ORDER‿BY(Order::total).DESC()} &rarr; {@code order by o.total desc}.
+	 * </p>
+	 *
+	 * @param col the ordering column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the column
+	 * @return the pending ordering, awaiting a direction
+	 */
+	public <T> OrderByStep<E> ㅤORDERㅤBYㅤ(TypedCol<T, ?> col) {
+		return new OrderByStep<>(this, Expr.typedCol(col));
 	}
 
 	/**
@@ -617,7 +703,7 @@ public final class Q<E> {
 	 * @return the pending ordering, awaiting a direction
 	 */
 	public OrderByStep<E> ㅤORDERㅤBYㅤ(String alias, String field) {
-		return new OrderByStep<>(this, Linq.col(alias, field));
+		return new OrderByStep<>(this, Linq.typedCol(alias, field));
 	}
 
 	Q<E> addOrderBy(Expr e) {
@@ -660,14 +746,17 @@ public final class Q<E> {
 	}
 
 	/**
-	 * Overrides the {@link TypedQuery}'s flush mode for every {@code via}/{@code first} call on this
-	 * query (all of them ultimately create their {@link TypedQuery} through {@link #via(EntityManager)}
-	 * or {@link #via(EntityManager, Class)}), instead of leaving it at the persistence context's
-	 * default.
+	 * Overrides the {@link TypedQuery}'s flush mode for every
+	 * {@code via}/{@code first} call on this query (all of them ultimately create
+	 * their {@link TypedQuery} through {@link #via(EntityManager)} or
+	 * {@link #via(EntityManager, Class)}), instead of leaving it at the persistence
+	 * context's default.
 	 *
 	 * <p>
-	 * Example: {@code SELECT(Order.class).FROM(Order.class).AS("o").FLUSHㅤMODE(FlushModeType.COMMIT)}
-	 * &rarr; skips the implicit flush this query would otherwise trigger for pending changes.
+	 * Example:
+	 * {@code SELECT(Order.class).FROM(Order.class).AS("o").FLUSHㅤMODE(FlushModeType.COMMIT)}
+	 * &rarr; skips the implicit flush this query would otherwise trigger for
+	 * pending changes.
 	 * </p>
 	 *
 	 * @param mode the flush mode to apply; must not be {@code null}
@@ -717,7 +806,7 @@ public final class Q<E> {
 	 *
 	 * <p>
 	 * Example:
-	 * {@code SELECT(col(User::id)).FROM(User.class).WHERE(User::Name).ᆖ("John").getHql()}
+	 * {@code SELECT(typedCol(User::id)).FROM(User.class).WHERE(User::Name).ᆖ("John").getHql()}
 	 * returns {@code "select id from User where Name = 'John'"}.
 	 * </p>
 	 *
@@ -862,11 +951,10 @@ public final class Q<E> {
 	 * {@code SELECT} list:
 	 * </p>
 	 * <ul>
-	 * <li>a single scalar/aggregate column (e.g.
-	 * {@code SELECT(COUNT(Order::id))}) &rarr; a wrapper type such as
-	 * {@code Long.class};</li>
+	 * <li>a single scalar/aggregate column (e.g. {@code SELECT(COUNT(Order::id))})
+	 * &rarr; a wrapper type such as {@code Long.class};</li>
 	 * <li>several columns/aggregates (e.g.
-	 * {@code SELECT(col(Order::customerId), COUNT(Order::id))
+	 * {@code SELECT(typedCol(Order::customerId), COUNT(Order::id))
 	 * .GROUP‿BY(Order::customerId)}) &rarr; {@code Object[].class}, one array per
 	 * row;</li>
 	 * <li>a {@link Linq#NEW(Class, Object...) NEW(Dto.class, ...)} constructor
@@ -1080,7 +1168,7 @@ public final class Q<E> {
 		return s;
 	}
 
-	private static <T> Expr pathExpr(Col<T> path) {
+	private static <T> Expr pathExpr(TypedCol<T, ?> path) {
 		String prop = Names.property(path);
 		String entity = Names.entity(path);
 		return Expr.of(ctx -> {

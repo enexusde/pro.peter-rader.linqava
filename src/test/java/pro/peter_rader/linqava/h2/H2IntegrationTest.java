@@ -10,13 +10,13 @@ package pro.peter_rader.linqava.h2;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static pro.peter_rader.linqava.Linq.CONCAT;
 import static pro.peter_rader.linqava.Linq.COUNT;
 import static pro.peter_rader.linqava.Linq.COUNTㅤꁘ;
 import static pro.peter_rader.linqava.Linq.LOWER;
 import static pro.peter_rader.linqava.Linq.NEW;
 import static pro.peter_rader.linqava.Linq.SELECTㅤ;
 import static pro.peter_rader.linqava.Linq.SELECTㅤꁘㅤFROM;
-import static pro.peter_rader.linqava.Linq.col;
 import static pro.peter_rader.linqava.Linq.ㅤANDㅤ;
 import static pro.peter_rader.linqava.Linq.ㅤCASTㅤ;
 import static pro.peter_rader.linqava.Linq.ㅤᆖㅤ;
@@ -37,8 +37,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import pro.peter_rader.linqava.Col;
 import pro.peter_rader.linqava.EntityQ;
+import pro.peter_rader.linqava.Grouped;
 import pro.peter_rader.linqava.Q;
 import pro.peter_rader.linqava.ScalarQ;
 
@@ -91,6 +91,26 @@ public class H2IntegrationTest {
 			tx.rollback();
 		}
 		em.close();
+	}
+
+	/**
+	 * The (getter, alias) pair overloads of {@code SELECT} build an aliased multi-column projection
+	 * without any {@code typedCol(...)}/{@code col(...)} wrapping anywhere in user code.
+	 */
+	@Test
+	public void viaExecutesSelectWithAliasedColumnPairs() {
+		Customer c = new Customer().setName("Ada").setCountry("UK");
+		em.persist(c);
+		em.persist(new Order().setCustomer(c).setStatus("PAID").setTotal(10.0));
+		em.flush();
+
+		Q<Object> q = SELECTㅤ(Order::getId, "id", Order::getStatus, "status").ㅤFROMㅤ(Order.class);
+		assertEquals("select id as id, status as status from Order", q.getHql());
+
+		List<Object[]> rows = q.via(em, Object[].class);
+
+		assertEquals(1, rows.size());
+		assertEquals("PAID", rows.get(0)[1]);
 	}
 
 	@Test
@@ -242,6 +262,24 @@ public class H2IntegrationTest {
 		assertTrue(results.get(0).startsWith("42"));
 	}
 
+	/**
+	 * {@code CONCAT(...)} joins a column and literals into a single string, executed for real against
+	 * Hibernate/H2.
+	 */
+	@Test
+	public void viaExecutesConcatOfColumnAndLiterals() {
+		em.persist(new Order().setStatus("PAID").setTotal(10.0));
+		em.flush();
+
+		Q<Object> q = SELECTㅤ(CONCAT(Order::getStatus, "-", "done")).ㅤFROMㅤ(Order.class).ㅤAS("o");
+		assertEquals("select concat(o.status, '-', 'done') from Order o", q.getHql());
+
+		List<String> results = q.via(em, String.class);
+
+		assertEquals(1, results.size());
+		assertEquals("PAID-done", results.get(0));
+	}
+
 	@Test
 	public void unionAllCombinesTwoRealResultSets() {
 		em.persist(new Order().setStatus("PAID").setTotal(10.0));
@@ -351,7 +389,7 @@ public class H2IntegrationTest {
 		em.persist(new Order().setCustomer(c).setStatus("CANCELLED").setTotal(5.0));
 		em.flush();
 
-		Q<Object> q = SELECTㅤ(Order::getStatus, COUNT(Order::getId)).ㅤFROMㅤ(Order.class).ㅤAS("o")
+		Grouped<Object> q = SELECTㅤ(Order::getStatus, COUNT(Order::getId)).ㅤFROMㅤ(Order.class).ㅤAS("o")
 				.GROUPㅤBY(Order::getStatus);
 		assertEquals("select o.status, count(o.id) from Order o group by o.status", q.getHql());
 
@@ -368,7 +406,7 @@ public class H2IntegrationTest {
 
 	/**
 	 * {@code via(EntityManager, Class)} also drives
-	 * {@link pro.peter_rader.linqava.Linq#NEW(Class, Col, Object...)} constructor projections straight
+	 * {@link pro.peter_rader.linqava.Linq#NEW(Class, TypedCol, Object...)} constructor projections straight
 	 * into real DTO instances via Hibernate's own constructor-expression support.
 	 */
 	@Test
@@ -379,7 +417,7 @@ public class H2IntegrationTest {
 		em.persist(new Order().setCustomer(c).setStatus("PAID").setTotal(20.0));
 		em.flush();
 
-		Q<Object> q = SELECTㅤ(NEW(StatusCount.class, Order::getStatus, COUNT(Order::getId))).ㅤFROMㅤ(Order.class)
+		Grouped<Object> q = SELECTㅤ(NEW(StatusCount.class, Order::getStatus, COUNT(Order::getId))).ㅤFROMㅤ(Order.class)
 				.ㅤAS("o").GROUPㅤBY(Order::getStatus);
 		assertEquals("select new pro.peter_rader.linqava.h2.StatusCount(o.status, count(o.id)) "
 				+ "from Order o group by o.status", q.getHql());
@@ -465,10 +503,11 @@ public class H2IntegrationTest {
 	}
 
 	/**
-	 * A self-join where both aliases refer to the <em>same</em> entity — bare {@code Col} references
-	 * would be ambiguous between the two aliases, so every column on both sides of the {@code ON}
-	 * condition (and the {@code SELECT}/{@code WHERE}) goes through the alias-qualified
-	 * {@code col(alias, getter)} form instead. Real end-to-end verification that {@code LOWER(...)}
+	 * A self-join where both aliases refer to the <em>same</em> entity — bare {@code TypedCol}
+	 * references would be ambiguous between the two aliases, so every column on both sides of the
+	 * {@code ON} condition (and the {@code SELECT}/{@code WHERE}) goes through one of the dedicated
+	 * {@code (alias, getter)}-qualified overloads instead (on {@code SELECT}, {@code LOWER},
+	 * {@code ᆖ}/{@code ᐸᐳ} and {@code WHERE}). Real end-to-end verification that {@code LOWER(...)}
 	 * inside a multi-predicate {@code ON} clause, combined via the static {@code AND(Cond...)},
 	 * produces working HQL against Hibernate/H2 — mirrors a duplicate-detection query pattern (find
 	 * pairs of distinct rows sharing the same, not-yet-lowercased text).
@@ -483,14 +522,13 @@ public class H2IntegrationTest {
 		em.persist(alreadyLower);
 		em.flush();
 
-		Q<Object> q = SELECTㅤ(col("a", EMailAddressLocalName::getId), col("b", EMailAddressLocalName::getId))
+		Q<Object> q = SELECTㅤ("a", EMailAddressLocalName::getId, "b", EMailAddressLocalName::getId)
 				.ㅤFROMㅤ(EMailAddressLocalName.class).ㅤAS("a").JOIN(EMailAddressLocalName.class).ㅤAS("b")
 				.ㅤONㅤ(ㅤANDㅤ(
-						ㅤᐸᐳㅤ(LOWER(col("a", EMailAddressLocalName::getLocalName)),
-								col("b", EMailAddressLocalName::getLocalName)),
-						ㅤᆖㅤ(col("a", EMailAddressLocalName::getLocalName), col("b", EMailAddressLocalName::getLocalName)),
-						ㅤᐸᐳㅤ(col("a", EMailAddressLocalName::getId), col("b", EMailAddressLocalName::getId))))
-				.ㅤWHEREㅤ(col("b", EMailAddressLocalName::getId)).ISㅤNOTㅤNULL();
+						ㅤᐸᐳㅤ(LOWER("a", EMailAddressLocalName::getLocalName), "b", EMailAddressLocalName::getLocalName),
+						ㅤᆖㅤ("a", EMailAddressLocalName::getLocalName, "b", EMailAddressLocalName::getLocalName),
+						ㅤᐸᐳㅤ("a", EMailAddressLocalName::getId, "b", EMailAddressLocalName::getId)))
+				.ㅤWHEREㅤ("b", EMailAddressLocalName::getId).ISㅤNOTㅤNULL();
 
 		List<Long[]> rows = q.via(em, Long[].class);
 

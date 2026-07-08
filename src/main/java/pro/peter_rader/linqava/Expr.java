@@ -1,6 +1,6 @@
 /*
  *  _    ___ _  _  ___https://www.e-nexus.de./
- * | |  |_ _| \| |/ _ \ __ ___ ____ _ 
+ * | |  |_ _| \| |/ _ \ __ ___ ____ _
  * | |__ | || .` | (_) / _` \ V / _` |
  * |____|___|_|\_|\__\_\__,_|\_/\__,_|
  * Queries may not be Strings! (c) 2026
@@ -33,12 +33,23 @@ public abstract class Expr {
 	// --- arithmetic (glyph operators) ---
 
 	/**
-	 * Addition ({@code +}), e.g. {@code col("h", "depth").ᐩ(1)} &rarr; {@code h.depth + 1}.
+	 * Addition ({@code +}), e.g. {@code typedCol(Order::getTotal).ᐩ(1)} &rarr; {@code o.total + 1}.
 	 *
 	 * @param other the right operand (Expr/literal); must not be {@code null}
 	 * @return a new expression
 	 */
 	public Expr ᐩ(Object other) { return bin(this, "+", val(other)); }
+
+	/**
+	 * Addition ({@code +}) against a bare column reference, e.g.
+	 * {@code typedCol(Order::getTotal).ᐩ(Order::getDiscount)} &rarr; {@code o.total + o.discount} —
+	 * no {@link Linq#typedCol(TypedCol) typedCol(...)} wrapping needed for the right operand.
+	 *
+	 * @param other the right operand's column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return a new expression
+	 */
+	public <T> Expr ᐩ(TypedCol<T, ?> other) { return ᐩ(typedCol(other)); }
 
 	/**
 	 * Subtraction ({@code -}).
@@ -49,6 +60,15 @@ public abstract class Expr {
 	public Expr ｰ(Object other) { return bin(this, "-", val(other)); }
 
 	/**
+	 * Subtraction ({@code -}) against a bare column reference — see {@link #ᐩ(TypedCol)}.
+	 *
+	 * @param other the right operand's column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return a new expression
+	 */
+	public <T> Expr ｰ(TypedCol<T, ?> other) { return ｰ(typedCol(other)); }
+
+	/**
 	 * Multiplication ({@code *}).
 	 *
 	 * @param other the right operand; must not be {@code null}
@@ -57,12 +77,30 @@ public abstract class Expr {
 	public Expr ᚷ(Object other) { return bin(this, "*", val(other)); }
 
 	/**
+	 * Multiplication ({@code *}) against a bare column reference — see {@link #ᐩ(TypedCol)}.
+	 *
+	 * @param other the right operand's column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return a new expression
+	 */
+	public <T> Expr ᚷ(TypedCol<T, ?> other) { return ᚷ(typedCol(other)); }
+
+	/**
 	 * Division ({@code /}).
 	 *
 	 * @param other the right operand; must not be {@code null}
 	 * @return a new expression
 	 */
 	public Expr ノ(Object other) { return bin(this, "/", val(other)); }
+
+	/**
+	 * Division ({@code /}) against a bare column reference — see {@link #ᐩ(TypedCol)}.
+	 *
+	 * @param other the right operand's column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return a new expression
+	 */
+	public <T> Expr ノ(TypedCol<T, ?> other) { return ノ(typedCol(other)); }
 
 	// --- comparison (glyph operator, for boolean expressions in a SELECT list) ---
 
@@ -77,6 +115,17 @@ public abstract class Expr {
 	public Expr ㅤᆖㅤ(Object other) { return bin(this, "=", val(other)); }
 
 	/**
+	 * Equality ({@code =}) against a bare column reference, e.g.
+	 * {@code typedCol(Order::getTotal).ㅤᆖㅤ(Order::getDiscount)} &rarr; {@code o.total = o.discount}
+	 * — no {@link Linq#typedCol(TypedCol) typedCol(...)} wrapping needed for the right operand.
+	 *
+	 * @param other the right operand's column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return a new expression
+	 */
+	public <T> Expr ㅤᆖㅤ(TypedCol<T, ?> other) { return ㅤᆖㅤ(typedCol(other)); }
+
+	/**
 	 * Less-than ({@code <}) as a projectable boolean expression, e.g.
 	 * {@code COUNTㅤꁘ().ㅤᐸㅤ(3)} &rarr; {@code count(*) < 3}. For {@code WHERE}/{@code HAVING}
 	 * predicates use {@link Cond}'s {@code ᐸ} instead.
@@ -85,6 +134,15 @@ public abstract class Expr {
 	 * @return a new expression
 	 */
 	public Expr ㅤᐸㅤ(Object other) { return bin(this, "<", val(other)); }
+
+	/**
+	 * Less-than ({@code <}) against a bare column reference — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param other the right operand's column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return a new expression
+	 */
+	public <T> Expr ㅤᐸㅤ(TypedCol<T, ?> other) { return ㅤᐸㅤ(typedCol(other)); }
 
 	/**
 	 * Greater-than ({@code >}) as a projectable boolean expression, e.g.
@@ -97,6 +155,15 @@ public abstract class Expr {
 	public Expr ㅤᐳㅤ(Object other) { return bin(this, ">", val(other)); }
 
 	/**
+	 * Greater-than ({@code >}) against a bare column reference — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param other the right operand's column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return a new expression
+	 */
+	public <T> Expr ㅤᐳㅤ(TypedCol<T, ?> other) { return ㅤᐳㅤ(typedCol(other)); }
+
+	/**
 	 * Less-than-or-equal ({@code <=}) as a projectable boolean expression. For
 	 * {@code WHERE}/{@code HAVING} predicates use {@link Cond}'s {@code ᐸᆖ} instead.
 	 *
@@ -104,6 +171,15 @@ public abstract class Expr {
 	 * @return a new expression
 	 */
 	public Expr ᐸᆖ(Object other) { return bin(this, "<=", val(other)); }
+
+	/**
+	 * Less-than-or-equal ({@code <=}) against a bare column reference — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param other the right operand's column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return a new expression
+	 */
+	public <T> Expr ᐸᆖ(TypedCol<T, ?> other) { return ᐸᆖ(typedCol(other)); }
 
 	/**
 	 * Greater-than-or-equal ({@code >=}) as a projectable boolean expression. For
@@ -115,6 +191,15 @@ public abstract class Expr {
 	public Expr ᐳᆖ(Object other) { return bin(this, ">=", val(other)); }
 
 	/**
+	 * Greater-than-or-equal ({@code >=}) against a bare column reference — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param other the right operand's column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return a new expression
+	 */
+	public <T> Expr ᐳᆖ(TypedCol<T, ?> other) { return ᐳᆖ(typedCol(other)); }
+
+	/**
 	 * Not-equal ({@code <>}) as a projectable boolean expression. For
 	 * {@code WHERE}/{@code HAVING} predicates use {@link Cond}'s {@code ᐸᐳ} instead.
 	 *
@@ -123,10 +208,19 @@ public abstract class Expr {
 	 */
 	public Expr ᐸᐳ(Object other) { return bin(this, "<>", val(other)); }
 
+	/**
+	 * Not-equal ({@code <>}) against a bare column reference — see {@link #ㅤᆖㅤ(TypedCol)}.
+	 *
+	 * @param other the right operand's column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return a new expression
+	 */
+	public <T> Expr ᐸᐳ(TypedCol<T, ?> other) { return ᐸᐳ(typedCol(other)); }
+
 	// --- ordering / windowing / aliasing ---
 
 	/**
-	 * Descending order marker, e.g. {@code col(Order::total).DESC()} &rarr; {@code o.total desc}.
+	 * Descending order marker, e.g. {@code typedCol(Order::getTotal).DESC()} &rarr; {@code o.total desc}.
 	 *
 	 * @return a new expression
 	 */
@@ -140,7 +234,7 @@ public abstract class Expr {
 	public Expr ASC() { Expr s = this; return of(c -> s.render(c) + " asc"); }
 
 	/**
-	 * Field/column alias, e.g. {@code col(User::id).AS("id")} or {@code SUM(...).AS("total")}.
+	 * Field/column alias, e.g. {@code typedCol(User::getId).AS("id")} or {@code SUM(...).AS("total")}.
 	 *
 	 * @param alias the alias name; must not be {@code null} or blank
 	 * @return a new expression
@@ -165,13 +259,13 @@ public abstract class Expr {
 
 	/**
 	 * Window ordering by a bare column reference, e.g.
-	 * {@code PARTITIONㅤBY(...).ORDERㅤBY(Order::total).DESC()} &rarr; {@code partition by ... order by o.total desc}.
+	 * {@code PARTITIONㅤBY(...).ORDERㅤBY(Order::getTotal).DESC()} &rarr; {@code partition by ... order by o.total desc}.
 	 *
 	 * @param key the column getter (method reference); must not be {@code null}
 	 * @param <T> the entity type owning the column
 	 * @return a new expression; chain {@link #DESC()}/{@link #ASC()} for direction
 	 */
-	public <T> Expr ORDERㅤBY(Col<T> key) { Expr s = this; Expr k = col(key); return of(c -> s.render(c) + " order by " + k.render(c)); }
+	public <T> Expr ORDERㅤBY(TypedCol<T, ?> key) { Expr s = this; Expr k = typedCol(key); return of(c -> s.render(c) + " order by " + k.render(c)); }
 
 	/**
 	 * Member access on a {@code TREAT(...)} result, e.g.
@@ -181,7 +275,7 @@ public abstract class Expr {
 	 * @param <T>    the subtype owning the getter
 	 * @return a new expression
 	 */
-	public <T> Expr ᐧ(Col<T> getter) {
+	public <T> Expr ᐧ(TypedCol<T, ?> getter) {
 		Expr s = this;
 		String prop = Names.property(getter);
 		return of(c -> s.render(c) + "." + prop);
@@ -207,7 +301,7 @@ public abstract class Expr {
 	}
 
 	/** A column reference resolved to {@code alias.property} in the current query. */
-	static Expr col(Col<?> ref) {
+	static Expr typedCol(TypedCol<?, ?> ref) {
 		String prop = Names.property(ref);
 		String entity = Names.entity(ref);
 		return of(c -> {
@@ -225,7 +319,7 @@ public abstract class Expr {
 	/**
 	 * Like {@link #val(Object)}, but attaches a bind-parameter name hint for {@link Q#via} — see
 	 * {@link LiteralExpr}. Callers that know which column {@code o} is being compared against (e.g.
-	 * {@code WHERE(Order::total).ᐳ(100)}) pass that column's property name; everyone else passes
+	 * {@code WHERE(Order::getTotal).ᐳ(100)}) pass that column's property name; everyone else passes
 	 * {@code null} and gets the numbered fallback.
 	 */
 	static Expr val(Object o, String hint) {
@@ -235,6 +329,10 @@ public abstract class Expr {
 		if (o instanceof Q) {
 			Q q = (Q) o;
 			return of(c -> "(" + q.hqlFor(c.collector()) + ")");
+		}
+		if (o instanceof Grouped) {
+			Grouped<?> g = (Grouped<?>) o;
+			return of(c -> "(" + g.hqlFor(c.collector()) + ")");
 		}
 		return new LiteralExpr(o, hint);
 	}

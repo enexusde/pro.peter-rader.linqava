@@ -89,13 +89,13 @@ public final class ScalarQ<T> {
 	}
 
 	/**
-	 * Inner-joins along an association path — see {@link Q#JOIN(Col)}.
+	 * Inner-joins along an association path — see {@link Q#JOIN(TypedCol)}.
 	 *
 	 * @param path the association getter (method reference); must not be {@code null}
 	 * @param <A>  the owning entity type
 	 * @return this builder, for chaining
 	 */
-	public <A> ScalarQ<T> JOIN(Col<A> path) {
+	public <A> ScalarQ<T> JOIN(TypedCol<A, ?> path) {
 		q.JOIN(path);
 		return this;
 	}
@@ -103,7 +103,7 @@ public final class ScalarQ<T> {
 	/**
 	 * Inner-joins along an alias-qualified association path — see {@link Q#JOIN(Object)}.
 	 *
-	 * @param path the alias-qualified path, typically {@link Linq#col(String, Col)}; must not be
+	 * @param path the alias-qualified path, typically {@link Linq#typedCol(String, TypedCol)}; must not be
 	 *             {@code null}
 	 * @return this builder, for chaining
 	 */
@@ -135,13 +135,13 @@ public final class ScalarQ<T> {
 	}
 
 	/**
-	 * Left-outer-joins along an association path — see {@link Q#LEFTㅤJOIN(Col)}.
+	 * Left-outer-joins along an association path — see {@link Q#LEFTㅤJOIN(TypedCol)}.
 	 *
 	 * @param path the association getter (method reference); must not be {@code null}
 	 * @param <A>  the owning entity type
 	 * @return this builder, for chaining
 	 */
-	public <A> ScalarQ<T> LEFTㅤJOIN(Col<A> path) {
+	public <A> ScalarQ<T> LEFTㅤJOIN(TypedCol<A, ?> path) {
 		q.LEFTㅤJOIN(path);
 		return this;
 	}
@@ -150,7 +150,7 @@ public final class ScalarQ<T> {
 	 * Left-outer-joins along an alias-qualified association path — see
 	 * {@link Q#LEFTㅤJOIN(Object)}.
 	 *
-	 * @param path the alias-qualified path, typically {@link Linq#col(String, Col)}; must not be
+	 * @param path the alias-qualified path, typically {@link Linq#typedCol(String, TypedCol)}; must not be
 	 *             {@code null}
 	 * @return this builder, for chaining
 	 */
@@ -184,27 +184,27 @@ public final class ScalarQ<T> {
 	}
 
 	/**
-	 * The {@code where} clause, started from a bare column — see {@link Q#ㅤWHEREㅤ(Col)}.
+	 * The {@code where} clause, started from a bare column — see {@link Q#ㅤWHEREㅤ(TypedCol)}.
 	 *
 	 * @param col the left column getter (method reference); must not be {@code null}
 	 * @param <A> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <A> WhereStep<ScalarQ<T>> ㅤWHEREㅤ(Col<A> col) {
-		return where(Expr.col(col), Names.property(col), "and");
+	public <A> WhereStep<ScalarQ<T>> ㅤWHEREㅤ(TypedCol<A, ?> col) {
+		return where(Expr.typedCol(col), Names.property(col), "and");
 	}
 
 	/**
 	 * The {@code where} clause, started from an alias-qualified column — see
-	 * {@link Q#ㅤWHEREㅤ(String, Col)}.
+	 * {@link Q#ㅤWHEREㅤ(String, TypedCol)}.
 	 *
 	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
 	 * @param col   the left column getter (method reference); must not be {@code null}
 	 * @param <A>   the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <A> WhereStep<ScalarQ<T>> ㅤWHEREㅤ(String alias, Col<A> col) {
-		return where(Linq.col(alias, col), Names.property(col), "and");
+	public <A> WhereStep<ScalarQ<T>> ㅤWHEREㅤ(String alias, TypedCol<A, ?> col) {
+		return where(Linq.typedCol(alias, col), Names.property(col), "and");
 	}
 
 	/**
@@ -220,27 +220,27 @@ public final class ScalarQ<T> {
 
 	/**
 	 * Appends another column-led predicate to the {@code where} clause, joined with {@code and} —
-	 * see {@link Q#ㅤANDㅤ(Col)}.
+	 * see {@link Q#ㅤANDㅤ(TypedCol)}.
 	 *
 	 * @param col the left column getter (method reference); must not be {@code null}
 	 * @param <A> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <A> WhereStep<ScalarQ<T>> ㅤANDㅤ(Col<A> col) {
-		return where(Expr.col(col), Names.property(col), "and");
+	public <A> WhereStep<ScalarQ<T>> ㅤANDㅤ(TypedCol<A, ?> col) {
+		return where(Expr.typedCol(col), Names.property(col), "and");
 	}
 
 	/**
 	 * Appends another alias-qualified column-led predicate, joined with {@code and} — see
-	 * {@link Q#ㅤANDㅤ(String, Col)}.
+	 * {@link Q#ㅤANDㅤ(String, TypedCol)}.
 	 *
 	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
 	 * @param col   the left column getter (method reference); must not be {@code null}
 	 * @param <A>   the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <A> WhereStep<ScalarQ<T>> ㅤANDㅤ(String alias, Col<A> col) {
-		return where(Linq.col(alias, col), Names.property(col), "and");
+	public <A> WhereStep<ScalarQ<T>> ㅤANDㅤ(String alias, TypedCol<A, ?> col) {
+		return where(Linq.typedCol(alias, col), Names.property(col), "and");
 	}
 
 	/**
@@ -256,27 +256,27 @@ public final class ScalarQ<T> {
 
 	/**
 	 * Appends another column-led predicate to the {@code where} clause, joined with {@code or} —
-	 * see {@link Q#ㅤORㅤ(Col)}.
+	 * see {@link Q#ㅤORㅤ(TypedCol)}.
 	 *
 	 * @param col the left column getter (method reference); must not be {@code null}
 	 * @param <A> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <A> WhereStep<ScalarQ<T>> ㅤORㅤ(Col<A> col) {
-		return where(Expr.col(col), Names.property(col), "or");
+	public <A> WhereStep<ScalarQ<T>> ㅤORㅤ(TypedCol<A, ?> col) {
+		return where(Expr.typedCol(col), Names.property(col), "or");
 	}
 
 	/**
 	 * Appends another alias-qualified column-led predicate, joined with {@code or} — see
-	 * {@link Q#ㅤORㅤ(String, Col)}.
+	 * {@link Q#ㅤORㅤ(String, TypedCol)}.
 	 *
 	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
 	 * @param col   the left column getter (method reference); must not be {@code null}
 	 * @param <A>   the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <A> WhereStep<ScalarQ<T>> ㅤORㅤ(String alias, Col<A> col) {
-		return where(Linq.col(alias, col), Names.property(col), "or");
+	public <A> WhereStep<ScalarQ<T>> ㅤORㅤ(String alias, TypedCol<A, ?> col) {
+		return where(Linq.typedCol(alias, col), Names.property(col), "or");
 	}
 
 	/**

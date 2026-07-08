@@ -17,7 +17,7 @@ package pro.peter_rader.linqava;
  * <pre>{@code
  * import static linqava.Linq.*;
  *
- * Q<?> q = SELECT(col(User::id))
+ * Q<?> q = SELECT(typedCol(User::id))
  *           .FROM(User.class)
  *           .WHERE(User::Name).ᆖ("John");
  * q.getHql(); // "select id from User where Name = 'John'"
@@ -42,12 +42,12 @@ public final class Linq {
 	 * Starts a {@code SELECT} query.
 	 *
 	 * <p>
-	 * Example: {@code SELECT(col(Order::id), COUNT(col(Order::id)))} &rarr;
+	 * Example: {@code SELECT(typedCol(Order::id), COUNT(typedCol(Order::id)))} &rarr;
 	 * {@code select o.id, count(o.id) ...}
 	 * </p>
 	 *
 	 * @param cols the projected columns/expressions, in order; typically
-	 *             {@link #col(Col)}, aggregates such as {@link #COUNT(Object)}, or
+	 *             {@link #typedCol(TypedCol)}, aggregates such as {@link #COUNT(Object)}, or
 	 *             {@link #entity(Class)}. Must not be {@code null} and should not
 	 *             contain {@code null} elements (a {@code null} element renders as
 	 *             the literal text {@code null}). May be empty.
@@ -82,7 +82,7 @@ public final class Linq {
 	/**
 	 * Starts a {@code SELECT} whose first column is a bare getter reference, e.g.
 	 * {@code SELECT(Order::id, CASE()...END())} — avoids wrapping the leading
-	 * column in {@link #col(Col)}.
+	 * column in {@link #typedCol(TypedCol)}.
 	 *
 	 * @param first the first column getter (method reference); must not be
 	 *              {@code null}
@@ -92,9 +92,756 @@ public final class Linq {
 	 * @return the {@code SELECT} phase, which requires a
 	 *         {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <A> SelectStep<Object> SELECTㅤ(Col<A> first, Object... rest) {
+	public static <A> SelectStep<Object> SELECTㅤ(TypedCol<A, ?> first, Object... rest) {
 		return new SelectStep<>(new Q<Object>().addSelect(first, rest));
 	}
+
+	/**
+	 * Starts a {@code SELECT} of exactly two bare getter references from (possibly) different
+	 * entities, e.g. {@code SELECT(Order::id, Customer::name)} — like {@link #SELECTㅤ(TypedCol, Object...)}
+	 * but for a second column that is also a bare getter (which {@code Object...} cannot target
+	 * directly, since a method reference can only bind to a functional-interface-typed parameter).
+	 *
+	 * @param first  the first column getter (method reference); must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param <A>    the entity type owning the first column
+	 * @param <B>    the entity type owning the second column
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <A, B> SelectStep<Object> SELECTㅤ(TypedCol<A, ?> first, TypedCol<B, ?> second) {
+		return new SelectStep<>(new Q<Object>().addSelect(Expr.typedCol(first), Expr.typedCol(second)));
+	}
+
+	/**
+	 * Starts a {@code SELECT} of exactly three bare getter references — see
+	 * {@link #SELECTㅤ(TypedCol, TypedCol)}.
+	 *
+	 * @param first  the first column getter (method reference); must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param third  the third column getter (method reference); must not be {@code null}
+	 * @param <A>    the entity type owning the first column
+	 * @param <B>    the entity type owning the second column
+	 * @param <C>    the entity type owning the third column
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <A, B, C> SelectStep<Object> SELECTㅤ(TypedCol<A, ?> first, TypedCol<B, ?> second,
+			TypedCol<C, ?> third) {
+		return new SelectStep<>(
+				new Q<Object>().addSelect(Expr.typedCol(first), Expr.typedCol(second), Expr.typedCol(third)));
+	}
+
+	/**
+	 * Starts a {@code SELECT} of three leading bare getter references followed by arbitrary further
+	 * columns/expressions — see {@link #SELECTㅤ(TypedCol, TypedCol, TypedCol)}.
+	 *
+	 * @param first  the first column getter (method reference); must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param third  the third column getter (method reference); must not be {@code null}
+	 * @param rest   the remaining columns/expressions, in order; must not be {@code null}, may be
+	 *               empty
+	 * @param <A>    the entity type owning the first column
+	 * @param <B>    the entity type owning the second column
+	 * @param <C>    the entity type owning the third column
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <A, B, C> SelectStep<Object> SELECTㅤ(TypedCol<A, ?> first, TypedCol<B, ?> second,
+			TypedCol<C, ?> third, Object... rest) {
+		Object[] args = new Object[rest.length + 3];
+		args[0] = Expr.typedCol(first);
+		args[1] = Expr.typedCol(second);
+		args[2] = Expr.typedCol(third);
+		System.arraycopy(rest, 0, args, 3, rest.length);
+		return new SelectStep<>(new Q<Object>().addSelect(args));
+	}
+
+	/**
+	 * Starts a {@code SELECT} projecting two columns each qualified by an explicit alias — for
+	 * referencing columns of two aliases of the <em>same</em> entity in a self-join, e.g.
+	 * {@code SELECT("a", X::id, "b", X::id)} &rarr; {@code select a.id, b.id}.
+	 *
+	 * @param alias1 the range-variable alias qualifying the first column; must not be {@code null}
+	 * @param col1   the first column getter (method reference); must not be {@code null}
+	 * @param alias2 the range-variable alias qualifying the second column; must not be {@code null}
+	 * @param col2   the second column getter (method reference); must not be {@code null}
+	 * @param <A>    the entity type owning the first column
+	 * @param <B>    the entity type owning the second column
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <A, B> SelectStep<Object> SELECTㅤ(String alias1, TypedCol<A, ?> col1, String alias2,
+			TypedCol<B, ?> col2) {
+		return new SelectStep<>(new Q<Object>().addSelect(typedCol(alias1, col1), typedCol(alias2, col2)));
+	}
+
+	/**
+	 * SELECT of 1 explicitly aliased bare column — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias)));
+	}
+
+	/**
+	 * SELECT of 2 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias)));
+	}
+
+	/**
+	 * SELECT of 3 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias)));
+	}
+
+	/**
+	 * SELECT of 4 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias)));
+	}
+
+	/**
+	 * SELECT of 5 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias)));
+	}
+
+	/**
+	 * SELECT of 6 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias)));
+	}
+
+	/**
+	 * SELECT of 7 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias)));
+	}
+
+	/**
+	 * SELECT of 8 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias)));
+	}
+
+	/**
+	 * SELECT of 9 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias)));
+	}
+
+	/**
+	 * SELECT of 10 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias)));
+	}
+
+	/**
+	 * SELECT of 11 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias,
+			TypedCol<T11, ?> eleventh, String eleventhAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias),
+				Expr.typedCol(eleventh).ㅤAS(eleventhAlias)));
+	}
+
+	/**
+	 * SELECT of 12 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias,
+			TypedCol<T11, ?> eleventh, String eleventhAlias,
+			TypedCol<T12, ?> twelfth, String twelfthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias),
+				Expr.typedCol(eleventh).ㅤAS(eleventhAlias),
+				Expr.typedCol(twelfth).ㅤAS(twelfthAlias)));
+	}
+
+	/**
+	 * SELECT of 13 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias,
+			TypedCol<T11, ?> eleventh, String eleventhAlias,
+			TypedCol<T12, ?> twelfth, String twelfthAlias,
+			TypedCol<T13, ?> thirteenth, String thirteenthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias),
+				Expr.typedCol(eleventh).ㅤAS(eleventhAlias),
+				Expr.typedCol(twelfth).ㅤAS(twelfthAlias),
+				Expr.typedCol(thirteenth).ㅤAS(thirteenthAlias)));
+	}
+
+	/**
+	 * SELECT of 14 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>
+			SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias,
+			TypedCol<T11, ?> eleventh, String eleventhAlias,
+			TypedCol<T12, ?> twelfth, String twelfthAlias,
+			TypedCol<T13, ?> thirteenth, String thirteenthAlias,
+			TypedCol<T14, ?> fourteenth, String fourteenthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias),
+				Expr.typedCol(eleventh).ㅤAS(eleventhAlias),
+				Expr.typedCol(twelfth).ㅤAS(twelfthAlias),
+				Expr.typedCol(thirteenth).ㅤAS(thirteenthAlias),
+				Expr.typedCol(fourteenth).ㅤAS(fourteenthAlias)));
+	}
+
+	/**
+	 * SELECT of 15 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>
+			SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias,
+			TypedCol<T11, ?> eleventh, String eleventhAlias,
+			TypedCol<T12, ?> twelfth, String twelfthAlias,
+			TypedCol<T13, ?> thirteenth, String thirteenthAlias,
+			TypedCol<T14, ?> fourteenth, String fourteenthAlias,
+			TypedCol<T15, ?> fifteenth, String fifteenthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias),
+				Expr.typedCol(eleventh).ㅤAS(eleventhAlias),
+				Expr.typedCol(twelfth).ㅤAS(twelfthAlias),
+				Expr.typedCol(thirteenth).ㅤAS(thirteenthAlias),
+				Expr.typedCol(fourteenth).ㅤAS(fourteenthAlias),
+				Expr.typedCol(fifteenth).ㅤAS(fifteenthAlias)));
+	}
+
+	/**
+	 * SELECT of 16 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>
+			SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias,
+			TypedCol<T11, ?> eleventh, String eleventhAlias,
+			TypedCol<T12, ?> twelfth, String twelfthAlias,
+			TypedCol<T13, ?> thirteenth, String thirteenthAlias,
+			TypedCol<T14, ?> fourteenth, String fourteenthAlias,
+			TypedCol<T15, ?> fifteenth, String fifteenthAlias,
+			TypedCol<T16, ?> sixteenth, String sixteenthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias),
+				Expr.typedCol(eleventh).ㅤAS(eleventhAlias),
+				Expr.typedCol(twelfth).ㅤAS(twelfthAlias),
+				Expr.typedCol(thirteenth).ㅤAS(thirteenthAlias),
+				Expr.typedCol(fourteenth).ㅤAS(fourteenthAlias),
+				Expr.typedCol(fifteenth).ㅤAS(fifteenthAlias),
+				Expr.typedCol(sixteenth).ㅤAS(sixteenthAlias)));
+	}
+
+	/**
+	 * SELECT of 17 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17>
+			SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias,
+			TypedCol<T11, ?> eleventh, String eleventhAlias,
+			TypedCol<T12, ?> twelfth, String twelfthAlias,
+			TypedCol<T13, ?> thirteenth, String thirteenthAlias,
+			TypedCol<T14, ?> fourteenth, String fourteenthAlias,
+			TypedCol<T15, ?> fifteenth, String fifteenthAlias,
+			TypedCol<T16, ?> sixteenth, String sixteenthAlias,
+			TypedCol<T17, ?> seventeenth, String seventeenthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias),
+				Expr.typedCol(eleventh).ㅤAS(eleventhAlias),
+				Expr.typedCol(twelfth).ㅤAS(twelfthAlias),
+				Expr.typedCol(thirteenth).ㅤAS(thirteenthAlias),
+				Expr.typedCol(fourteenth).ㅤAS(fourteenthAlias),
+				Expr.typedCol(fifteenth).ㅤAS(fifteenthAlias),
+				Expr.typedCol(sixteenth).ㅤAS(sixteenthAlias),
+				Expr.typedCol(seventeenth).ㅤAS(seventeenthAlias)));
+	}
+
+	/**
+	 * SELECT of 18 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17,
+			T18>
+			SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias,
+			TypedCol<T11, ?> eleventh, String eleventhAlias,
+			TypedCol<T12, ?> twelfth, String twelfthAlias,
+			TypedCol<T13, ?> thirteenth, String thirteenthAlias,
+			TypedCol<T14, ?> fourteenth, String fourteenthAlias,
+			TypedCol<T15, ?> fifteenth, String fifteenthAlias,
+			TypedCol<T16, ?> sixteenth, String sixteenthAlias,
+			TypedCol<T17, ?> seventeenth, String seventeenthAlias,
+			TypedCol<T18, ?> eighteenth, String eighteenthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias),
+				Expr.typedCol(eleventh).ㅤAS(eleventhAlias),
+				Expr.typedCol(twelfth).ㅤAS(twelfthAlias),
+				Expr.typedCol(thirteenth).ㅤAS(thirteenthAlias),
+				Expr.typedCol(fourteenth).ㅤAS(fourteenthAlias),
+				Expr.typedCol(fifteenth).ㅤAS(fifteenthAlias),
+				Expr.typedCol(sixteenth).ㅤAS(sixteenthAlias),
+				Expr.typedCol(seventeenth).ㅤAS(seventeenthAlias),
+				Expr.typedCol(eighteenth).ㅤAS(eighteenthAlias)));
+	}
+
+	/**
+	 * SELECT of 19 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17,
+			T18, T19>
+			SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias,
+			TypedCol<T11, ?> eleventh, String eleventhAlias,
+			TypedCol<T12, ?> twelfth, String twelfthAlias,
+			TypedCol<T13, ?> thirteenth, String thirteenthAlias,
+			TypedCol<T14, ?> fourteenth, String fourteenthAlias,
+			TypedCol<T15, ?> fifteenth, String fifteenthAlias,
+			TypedCol<T16, ?> sixteenth, String sixteenthAlias,
+			TypedCol<T17, ?> seventeenth, String seventeenthAlias,
+			TypedCol<T18, ?> eighteenth, String eighteenthAlias,
+			TypedCol<T19, ?> nineteenth, String nineteenthAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias),
+				Expr.typedCol(eleventh).ㅤAS(eleventhAlias),
+				Expr.typedCol(twelfth).ㅤAS(twelfthAlias),
+				Expr.typedCol(thirteenth).ㅤAS(thirteenthAlias),
+				Expr.typedCol(fourteenth).ㅤAS(fourteenthAlias),
+				Expr.typedCol(fifteenth).ㅤAS(fifteenthAlias),
+				Expr.typedCol(sixteenth).ㅤAS(sixteenthAlias),
+				Expr.typedCol(seventeenth).ㅤAS(seventeenthAlias),
+				Expr.typedCol(eighteenth).ㅤAS(eighteenthAlias),
+				Expr.typedCol(nineteenth).ㅤAS(nineteenthAlias)));
+	}
+
+	/**
+	 * SELECT of 20 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 *
+	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
+	 * {@code select id as id, name as name}.</p>
+	 *
+	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
+	 */
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17,
+			T18, T19, T20>
+			SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			TypedCol<T4, ?> fourth, String fourthAlias,
+			TypedCol<T5, ?> fifth, String fifthAlias,
+			TypedCol<T6, ?> sixth, String sixthAlias,
+			TypedCol<T7, ?> seventh, String seventhAlias,
+			TypedCol<T8, ?> eighth, String eighthAlias,
+			TypedCol<T9, ?> ninth, String ninthAlias,
+			TypedCol<T10, ?> tenth, String tenthAlias,
+			TypedCol<T11, ?> eleventh, String eleventhAlias,
+			TypedCol<T12, ?> twelfth, String twelfthAlias,
+			TypedCol<T13, ?> thirteenth, String thirteenthAlias,
+			TypedCol<T14, ?> fourteenth, String fourteenthAlias,
+			TypedCol<T15, ?> fifteenth, String fifteenthAlias,
+			TypedCol<T16, ?> sixteenth, String sixteenthAlias,
+			TypedCol<T17, ?> seventeenth, String seventeenthAlias,
+			TypedCol<T18, ?> eighteenth, String eighteenthAlias,
+			TypedCol<T19, ?> nineteenth, String nineteenthAlias,
+			TypedCol<T20, ?> twentieth, String twentiethAlias) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias),
+				Expr.typedCol(fourth).ㅤAS(fourthAlias),
+				Expr.typedCol(fifth).ㅤAS(fifthAlias),
+				Expr.typedCol(sixth).ㅤAS(sixthAlias),
+				Expr.typedCol(seventh).ㅤAS(seventhAlias),
+				Expr.typedCol(eighth).ㅤAS(eighthAlias),
+				Expr.typedCol(ninth).ㅤAS(ninthAlias),
+				Expr.typedCol(tenth).ㅤAS(tenthAlias),
+				Expr.typedCol(eleventh).ㅤAS(eleventhAlias),
+				Expr.typedCol(twelfth).ㅤAS(twelfthAlias),
+				Expr.typedCol(thirteenth).ㅤAS(thirteenthAlias),
+				Expr.typedCol(fourteenth).ㅤAS(fourteenthAlias),
+				Expr.typedCol(fifteenth).ㅤAS(fifteenthAlias),
+				Expr.typedCol(sixteenth).ㅤAS(sixteenthAlias),
+				Expr.typedCol(seventeenth).ㅤAS(seventeenthAlias),
+				Expr.typedCol(eighteenth).ㅤAS(eighteenthAlias),
+				Expr.typedCol(nineteenth).ㅤAS(nineteenthAlias),
+				Expr.typedCol(twentieth).ㅤAS(twentiethAlias)));
+	}
+
 
 	/**
 	 * Starts a {@code SELECT} of a whole entity — shorthand for
@@ -194,31 +941,23 @@ public final class Linq {
 		return new WithStep().WITHㅤRECURSIVE(name, definition);
 	}
 
-	// ===== column / value helpers =====
+	// ===== column / value helpers (package-private: no public wrapper function remains; every
+	// public entry point that needs one of these builds it internally — see the individual
+	// (alias, ...)-qualified overloads on Q/WhereStep/Cond/Linq's aggregate and predicate builders) =====
 
 	/**
-	 * A type-safe column reference, resolved to {@code alias.property} using the
-	 * alias declared for the column's entity in the surrounding query (just
-	 * {@code property} if no alias was declared).
+	 * A type-safe column reference, resolved to {@code alias.property} using the alias declared for
+	 * the column's entity in the surrounding query — package-private helper shared across this class,
+	 * used wherever a bare getter needs turning into an {@link Expr} (e.g. to chain {@code .AS(...)}
+	 * or arithmetic onto it).
 	 *
-	 * <p>
-	 * Example: with {@code FROM(User.class).AS("u")}, {@code col(User::name)}
-	 * &rarr; {@code u.name}.
-	 * </p>
-	 *
-	 * @param col the entity getter, e.g. {@code User::name}; must be a method
-	 *            reference (not an arbitrary lambda) and must not be {@code null}
+	 * @param col the entity getter, e.g. {@code User::name}; must be a method reference and not
+	 *            {@code null}
 	 * @param <T> the entity type owning the getter
 	 * @return the column as an {@link Expr}
 	 */
-	@Deprecated
-	public static <T> Expr col(Col<T> col) {
-		String prop = Names.property(col);
-		String entity = Names.entity(col);
-		return Expr.of(ctx -> {
-			String a = ctx.aliasFor(entity);
-			return a == null ? prop : a + "." + prop;
-		});
+	static <T> Expr typedCol(TypedCol<T, ?> col) {
+		return Expr.typedCol(col);
 	}
 
 	/**
@@ -226,15 +965,14 @@ public final class Linq {
 	 * no entity getter.
 	 *
 	 * <p>
-	 * Example: {@code col("orderCount")} &rarr; {@code orderCount}.
+	 * Example: {@code typedCol("orderCount")} &rarr; {@code orderCount}.
 	 * </p>
 	 *
 	 * @param derivedColumn the literal column text emitted verbatim into the HQL;
 	 *                      must not be {@code null}, e.g. {@code "orderCount"}
 	 * @return the column as an {@link Expr}
 	 */
-	@Deprecated
-	public static Expr col(String derivedColumn) {
+	static Expr typedCol(String derivedColumn) {
 		return Expr.of(ctx -> derivedColumn);
 	}
 
@@ -243,7 +981,7 @@ public final class Linq {
 	 * CTE/derived columns that have no entity getter.
 	 *
 	 * <p>
-	 * Example: {@code col("a", "name")} &rarr; {@code a.name}.
+	 * Example: {@code typedCol("a", "name")} &rarr; {@code a.name}.
 	 * </p>
 	 *
 	 * @param alias the range-variable alias; must not be {@code null}, e.g.
@@ -251,7 +989,7 @@ public final class Linq {
 	 * @param field the field name; must not be {@code null}, e.g. {@code "name"}
 	 * @return the aliased column as an {@link Expr}
 	 */
-	public static Expr col(String alias, String field) {
+	static Expr typedCol(String alias, String field) {
 		return Expr.of(ctx -> alias + "." + field);
 	}
 
@@ -261,7 +999,7 @@ public final class Linq {
 	 * correlated sub-queries, path joins).
 	 *
 	 * <p>
-	 * Example: {@code col("o", Order::customerId)} &rarr; {@code o.customerId}.
+	 * Example: {@code typedCol("o", Order::customerId)} &rarr; {@code o.customerId}.
 	 * </p>
 	 *
 	 * @param alias the range-variable alias to qualify the column with; must not be
@@ -271,8 +1009,7 @@ public final class Linq {
 	 * @param <T>   the entity type owning the getter
 	 * @return the aliased column as an {@link Expr}
 	 */
-	@Deprecated
-	public static <T> Expr col(String alias, Col<T> col) {
+	static <T> Expr typedCol(String alias, TypedCol<T, ?> col) {
 		String prop = Names.property(col);
 		return Expr.of(ctx -> alias + "." + prop);
 	}
@@ -330,7 +1067,7 @@ public final class Linq {
 	 *
 	 * <p>
 	 * Example:
-	 * {@code sub(SELECT(COUNT(col(Order::id))).FROM(Order.class)).AS("orderCount")}
+	 * {@code sub(SELECT(COUNT(typedCol(Order::id))).FROM(Order.class)).AS("orderCount")}
 	 * &rarr; {@code (select count(o.id) from Order o) as orderCount}.
 	 * </p>
 	 *
@@ -338,6 +1075,17 @@ public final class Linq {
 	 * @return the sub-query as an {@link Expr}
 	 */
 	public static Expr sub(Q subquery) {
+		return Expr.of(ctx -> "(" + subquery.getHql() + ")");
+	}
+
+	/**
+	 * Like {@link #sub(Q)}, for a sub-query whose definition ends in a {@code group by} — see
+	 * {@link Q#GROUPㅤBY(Object...)} for why that returns {@link Grouped} rather than {@code Q<?>}.
+	 *
+	 * @param subquery the nested query; must not be {@code null}
+	 * @return the sub-query as an {@link Expr}
+	 */
+	public static Expr sub(Grouped<?> subquery) {
 		return Expr.of(ctx -> "(" + subquery.getHql() + ")");
 	}
 
@@ -370,10 +1118,10 @@ public final class Linq {
 	 * The {@code count(...)} aggregate.
 	 *
 	 * <p>
-	 * Example: {@code COUNT(col(Order::id))} &rarr; {@code count(o.id)}.
+	 * Example: {@code COUNT(typedCol(Order::id))} &rarr; {@code count(o.id)}.
 	 * </p>
 	 *
-	 * @param arg the counted expression (e.g. {@link #col(Col)}); must not be
+	 * @param arg the counted expression (e.g. {@link #typedCol(TypedCol)}); must not be
 	 *            {@code null}
 	 * @return the aggregate as an {@link Expr}
 	 */
@@ -385,7 +1133,7 @@ public final class Linq {
 	 * The {@code sum(...)} aggregate.
 	 *
 	 * <p>
-	 * Example: {@code SUM(col(Order::total))} &rarr; {@code sum(o.total)}.
+	 * Example: {@code SUM(typedCol(Order::total))} &rarr; {@code sum(o.total)}.
 	 * </p>
 	 *
 	 * @param arg the summed expression; must not be {@code null}
@@ -399,7 +1147,7 @@ public final class Linq {
 	 * The {@code avg(...)} aggregate.
 	 *
 	 * <p>
-	 * Example: {@code AVG(col(Order::discount))} &rarr; {@code avg(o.discount)}.
+	 * Example: {@code AVG(typedCol(Order::discount))} &rarr; {@code avg(o.discount)}.
 	 * </p>
 	 *
 	 * @param arg the averaged expression; must not be {@code null}
@@ -413,7 +1161,7 @@ public final class Linq {
 	 * The {@code max(...)} aggregate.
 	 *
 	 * <p>
-	 * Example: {@code MAX(col(Order::total))} &rarr; {@code max(o.total)}.
+	 * Example: {@code MAX(typedCol(Order::total))} &rarr; {@code max(o.total)}.
 	 * </p>
 	 *
 	 * @param arg the expression to take the maximum of; must not be {@code null}
@@ -427,7 +1175,7 @@ public final class Linq {
 	 * The {@code min(...)} aggregate.
 	 *
 	 * <p>
-	 * Example: {@code MIN(col(Order::total))} &rarr; {@code min(o.total)}.
+	 * Example: {@code MIN(typedCol(Order::total))} &rarr; {@code min(o.total)}.
 	 * </p>
 	 *
 	 * @param arg the expression to take the minimum of; must not be {@code null}
@@ -441,7 +1189,7 @@ public final class Linq {
 	 * The {@code size(...)} function (cardinality of a collection association).
 	 *
 	 * <p>
-	 * Example: {@code SIZE(col(Customer::orders))} &rarr; {@code size(c.orders)}.
+	 * Example: {@code SIZE(typedCol(Customer::orders))} &rarr; {@code size(c.orders)}.
 	 * </p>
 	 *
 	 * @param arg the collection-valued expression; must not be {@code null}
@@ -455,7 +1203,7 @@ public final class Linq {
 	 * The {@code lower(...)} function (lowercases a string expression).
 	 *
 	 * <p>
-	 * Example: {@code LOWER(col(Order::status))} &rarr; {@code lower(o.status)}.
+	 * Example: {@code LOWER(typedCol(Order::status))} &rarr; {@code lower(o.status)}.
 	 * </p>
 	 *
 	 * @param arg the string-valued expression; must not be {@code null}
@@ -469,7 +1217,7 @@ public final class Linq {
 	 * The {@code upper(...)} function (uppercases a string expression).
 	 *
 	 * <p>
-	 * Example: {@code UPPER(col(Order::status))} &rarr; {@code upper(o.status)}.
+	 * Example: {@code UPPER(typedCol(Order::status))} &rarr; {@code upper(o.status)}.
 	 * </p>
 	 *
 	 * @param arg the string-valued expression; must not be {@code null}
@@ -483,7 +1231,7 @@ public final class Linq {
 	 * The {@code coalesce(...)} function returning its first non-null argument.
 	 *
 	 * <p>
-	 * Example: {@code COALESCE(AVG(col(Order::discount)), 0)} &rarr;
+	 * Example: {@code COALESCE(AVG(typedCol(Order::discount)), 0)} &rarr;
 	 * {@code coalesce(avg(o.discount), 0)}.
 	 * </p>
 	 *
@@ -496,11 +1244,48 @@ public final class Linq {
 	}
 
 	/**
+	 * The {@code concat(...)} function, joining its arguments into a single string.
+	 *
+	 * <p>
+	 * Example: {@code CONCAT(typedCol(Order::status), " - ", typedCol(Order::id))} &rarr;
+	 * {@code concat(o.status, ' - ', o.id)}.
+	 * </p>
+	 *
+	 * @param args the concatenated expressions/literals, in order; must not be
+	 *             {@code null}, should contain at least two non-{@code null}
+	 *             elements
+	 * @return the function call as an {@link Expr}
+	 */
+	public static Expr CONCAT(Object... args) {
+		return Expr.of(ctx -> "concat(" + Expr.list(ctx, args) + ")");
+	}
+
+	/**
+	 * {@code concat(column, ...)} whose first argument is a bare getter reference,
+	 * e.g. {@code CONCAT(Order::status, " - ", Order::id)} &rarr;
+	 * {@code concat(o.status, ' - ', o.id)} — avoids wrapping the leading column in
+	 * {@link #typedCol(TypedCol)}.
+	 *
+	 * @param first the first column getter (method reference); must not be
+	 *              {@code null}
+	 * @param rest  the remaining concatenated expressions/literals, in order; must
+	 *              not be {@code null}, may be empty
+	 * @param <T>   the entity type owning the first column
+	 * @return the function call as an {@link Expr}
+	 */
+	public static <T> Expr CONCAT(TypedCol<T, ?> first, Object... rest) {
+		Object[] args = new Object[rest.length + 1];
+		args[0] = Expr.typedCol(first);
+		System.arraycopy(rest, 0, args, 1, rest.length);
+		return CONCAT(args);
+	}
+
+	/**
 	 * The {@code nullif(a, b)} function (returns {@code null} when {@code a == b},
 	 * else {@code a}).
 	 *
 	 * <p>
-	 * Example: {@code NULLIF(col(Order::discount), 0)} &rarr;
+	 * Example: {@code NULLIF(typedCol(Order::discount), 0)} &rarr;
 	 * {@code nullif(o.discount, 0)}.
 	 * </p>
 	 *
@@ -524,7 +1309,7 @@ public final class Linq {
 	 * </p>
 	 *
 	 * <p>
-	 * Example: {@code CAST(col(Order::total), String.class)} &rarr;
+	 * Example: {@code CAST(typedCol(Order::total), String.class)} &rarr;
 	 * {@code cast(o.total as String)}.
 	 * </p>
 	 *
@@ -537,8 +1322,8 @@ public final class Linq {
 		return Expr.of(ctx -> "cast(" + e.render(ctx) + " as " + targetType.getSimpleName() + ")");
 	}
 
-	// --- Col overloads: take a bare getter reference directly, e.g.
-	// COUNT(Order::id) instead of COUNT(col(Order::id)) ---
+	// --- TypedCol overloads: take a bare getter reference directly, e.g.
+	// COUNT(Order::id) instead of COUNT(typedCol(Order::id)) ---
 
 	/**
 	 * {@code count(column)}, e.g. {@code COUNT(Order::id)} &rarr;
@@ -548,8 +1333,21 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return the aggregate as an {@link Expr}
 	 */
-	public static <T> Expr COUNT(Col<T> col) {
-		return fn("count", Expr.col(col));
+	public static <T> Expr COUNT(TypedCol<T, ?> col) {
+		return fn("count", Expr.typedCol(col));
+	}
+
+	/**
+	 * {@code count(alias.column)}, for a column qualified with an explicit alias — see
+	 * {@link Q#JOIN(String, TypedCol)} for when this is needed.
+	 *
+	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
+	 * @param col   the column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return the aggregate as an {@link Expr}
+	 */
+	public static <T> Expr COUNT(String alias, TypedCol<T, ?> col) {
+		return fn("count", typedCol(alias, col));
 	}
 
 	/**
@@ -560,8 +1358,20 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return the aggregate as an {@link Expr}
 	 */
-	public static <T> Expr SUM(Col<T> col) {
-		return fn("sum", Expr.col(col));
+	public static <T> Expr SUM(TypedCol<T, ?> col) {
+		return fn("sum", Expr.typedCol(col));
+	}
+
+	/**
+	 * {@code sum(alias.column)}, for a column qualified with an explicit alias.
+	 *
+	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
+	 * @param col   the column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return the aggregate as an {@link Expr}
+	 */
+	public static <T> Expr SUM(String alias, TypedCol<T, ?> col) {
+		return fn("sum", typedCol(alias, col));
 	}
 
 	/**
@@ -572,8 +1382,20 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return the aggregate as an {@link Expr}
 	 */
-	public static <T> Expr AVG(Col<T> col) {
-		return fn("avg", Expr.col(col));
+	public static <T> Expr AVG(TypedCol<T, ?> col) {
+		return fn("avg", Expr.typedCol(col));
+	}
+
+	/**
+	 * {@code avg(alias.column)}, for a column qualified with an explicit alias.
+	 *
+	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
+	 * @param col   the column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return the aggregate as an {@link Expr}
+	 */
+	public static <T> Expr AVG(String alias, TypedCol<T, ?> col) {
+		return fn("avg", typedCol(alias, col));
 	}
 
 	/**
@@ -584,8 +1406,20 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return the aggregate as an {@link Expr}
 	 */
-	public static <T> Expr MAX(Col<T> col) {
-		return fn("max", Expr.col(col));
+	public static <T> Expr MAX(TypedCol<T, ?> col) {
+		return fn("max", Expr.typedCol(col));
+	}
+
+	/**
+	 * {@code max(alias.column)}, for a column qualified with an explicit alias.
+	 *
+	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
+	 * @param col   the column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return the aggregate as an {@link Expr}
+	 */
+	public static <T> Expr MAX(String alias, TypedCol<T, ?> col) {
+		return fn("max", typedCol(alias, col));
 	}
 
 	/**
@@ -596,8 +1430,20 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return the aggregate as an {@link Expr}
 	 */
-	public static <T> Expr MIN(Col<T> col) {
-		return fn("min", Expr.col(col));
+	public static <T> Expr MIN(TypedCol<T, ?> col) {
+		return fn("min", Expr.typedCol(col));
+	}
+
+	/**
+	 * {@code min(alias.column)}, for a column qualified with an explicit alias.
+	 *
+	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
+	 * @param col   the column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return the aggregate as an {@link Expr}
+	 */
+	public static <T> Expr MIN(String alias, TypedCol<T, ?> col) {
+		return fn("min", typedCol(alias, col));
 	}
 
 	/**
@@ -609,8 +1455,20 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return the function call as an {@link Expr}
 	 */
-	public static <T> Expr SIZE(Col<T> col) {
-		return fn("size", Expr.col(col));
+	public static <T> Expr SIZE(TypedCol<T, ?> col) {
+		return fn("size", Expr.typedCol(col));
+	}
+
+	/**
+	 * {@code size(alias.column)}, for a collection-valued column qualified with an explicit alias.
+	 *
+	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
+	 * @param col   the collection-valued column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return the function call as an {@link Expr}
+	 */
+	public static <T> Expr SIZE(String alias, TypedCol<T, ?> col) {
+		return fn("size", typedCol(alias, col));
 	}
 
 	/**
@@ -621,8 +1479,21 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return the function call as an {@link Expr}
 	 */
-	public static <T> Expr LOWER(Col<T> col) {
-		return fn("lower", Expr.col(col));
+	public static <T> Expr LOWER(TypedCol<T, ?> col) {
+		return fn("lower", Expr.typedCol(col));
+	}
+
+	/**
+	 * {@code lower(alias.column)}, for a column qualified with an explicit alias — e.g. the two sides
+	 * of a self-join comparison, {@code LOWER("a", X::name)} vs. {@code LOWER("b", X::name)}.
+	 *
+	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
+	 * @param col   the column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return the function call as an {@link Expr}
+	 */
+	public static <T> Expr LOWER(String alias, TypedCol<T, ?> col) {
+		return fn("lower", typedCol(alias, col));
 	}
 
 	/**
@@ -633,8 +1504,20 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return the function call as an {@link Expr}
 	 */
-	public static <T> Expr UPPER(Col<T> col) {
-		return fn("upper", Expr.col(col));
+	public static <T> Expr UPPER(TypedCol<T, ?> col) {
+		return fn("upper", Expr.typedCol(col));
+	}
+
+	/**
+	 * {@code upper(alias.column)}, for a column qualified with an explicit alias.
+	 *
+	 * @param alias the range-variable alias to qualify the column with; must not be {@code null}
+	 * @param col   the column getter (method reference); must not be {@code null}
+	 * @param <T>   the entity type owning the column
+	 * @return the function call as an {@link Expr}
+	 */
+	public static <T> Expr UPPER(String alias, TypedCol<T, ?> col) {
+		return fn("upper", typedCol(alias, col));
 	}
 
 	/**
@@ -646,8 +1529,22 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return the function call as an {@link Expr}
 	 */
-	public static <T> Expr NULLIF(Col<T> a, Object b) {
-		return NULLIF(Expr.col(a), b);
+	public static <T> Expr NULLIF(TypedCol<T, ?> a, Object b) {
+		return NULLIF(Expr.typedCol(a), b);
+	}
+
+	/**
+	 * {@code nullif(columnA, columnB)}, e.g. {@code NULLIF(Order::a, Order::b)} &rarr;
+	 * {@code nullif(o.a, o.b)} — no {@link #typedCol(TypedCol) typedCol(...)} wrapping needed for either operand.
+	 *
+	 * @param a   the first column getter (method reference); must not be {@code null}
+	 * @param b   the second column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the first column
+	 * @param <R> the entity type owning the second column
+	 * @return the function call as an {@link Expr}
+	 */
+	public static <T, R> Expr NULLIF(TypedCol<T, ?> a, TypedCol<R, ?> b) {
+		return NULLIF(Expr.typedCol(a), Expr.typedCol(b));
 	}
 
 	/**
@@ -660,15 +1557,15 @@ public final class Linq {
 	 * @param <T>        the entity type owning the column
 	 * @return the function call as an {@link Expr}
 	 */
-	public static <T> Expr ㅤCASTㅤ(Col<T> col, Class<?> targetType) {
-		return ㅤCASTㅤ(Expr.col(col), targetType);
+	public static <T> Expr ㅤCASTㅤ(TypedCol<T, ?> col, Class<?> targetType) {
+		return ㅤCASTㅤ(Expr.typedCol(col), targetType);
 	}
 
 	/**
 	 * The {@code row_number()} window function.
 	 *
 	 * <p>
-	 * Example: {@code ROW_NUMBER().OVER(PARTITIONㅤBY(col(Order::customerId)))}
+	 * Example: {@code ROW_NUMBER().OVER(PARTITIONㅤBY(typedCol(Order::customerId)))}
 	 * &rarr; {@code row_number() over (partition by o.customerId)}.
 	 * </p>
 	 *
@@ -684,7 +1581,7 @@ public final class Linq {
 	 *
 	 * <p>
 	 * Example:
-	 * {@code RANK().OVER(PARTITIONㅤBY(col(Order::customerId)).ORDERㅤBY(Order::total).DESC())}.
+	 * {@code RANK().OVER(PARTITIONㅤBY(typedCol(Order::customerId)).ORDERㅤBY(Order::total).DESC())}.
 	 * </p>
 	 *
 	 * @return the function call as an {@link Expr}; combine with
@@ -698,7 +1595,7 @@ public final class Linq {
 	 * A {@code distinct} projection modifier for a {@code SELECT} list.
 	 *
 	 * <p>
-	 * Example: {@code SELECT(DISTINCT(col(Order::customerId)))} &rarr;
+	 * Example: {@code SELECT(DISTINCT(typedCol(Order::customerId)))} &rarr;
 	 * {@code select distinct o.customerId}.
 	 * </p>
 	 *
@@ -718,7 +1615,7 @@ public final class Linq {
 
 	/**
 	 * A {@code distinct} projection modifier for a single alias-qualified column —
-	 * shorthand for {@code DISTINCT(col(alias, col))}.
+	 * shorthand for {@code DISTINCT(typedCol(alias, col))}.
 	 *
 	 * <p>
 	 * Example: {@code DISTINCT("d", Order::customerId)} &rarr;
@@ -731,8 +1628,8 @@ public final class Linq {
 	 * @param <T>   the entity type owning the column
 	 * @return the modified projection as an {@link Expr}
 	 */
-	public static <T> Expr DISTINCT(String alias, Col<T> col) {
-		return DISTINCT(col(alias, col));
+	public static <T> Expr DISTINCT(String alias, TypedCol<T, ?> col) {
+		return DISTINCT(typedCol(alias, col));
 	}
 
 	private static <E> EntityExpr<E> preserveEntity(EntityExpr<E> e, Expr base) {
@@ -768,7 +1665,7 @@ public final class Linq {
 	 *
 	 * <p>
 	 * Example:
-	 * {@code NEW(CustomerSummary.class, Customer::id, COUNT(col("o", Order::id)))}
+	 * {@code NEW(CustomerSummary.class, Customer::id, COUNT(typedCol("o", Order::id)))}
 	 * &rarr; {@code new linqava.CustomerSummary(c.id, count(o.id))}.
 	 * </p>
 	 *
@@ -785,8 +1682,8 @@ public final class Linq {
 	/**
 	 * A constructor (DTO) projection whose first argument is a bare getter
 	 * reference, e.g.
-	 * {@code NEW(CustomerSummary.class, Customer::id, col(Customer::name))} —
-	 * avoids wrapping the leading argument in {@link #col(Col)}.
+	 * {@code NEW(CustomerSummary.class, Customer::id, typedCol(Customer::name))} —
+	 * avoids wrapping the leading argument in {@link #typedCol(TypedCol)}.
 	 *
 	 * @param dto   the DTO class whose constructor is invoked; must not be
 	 *              {@code null}. The fully-qualified name ({@link Class#getName()})
@@ -798,16 +1695,16 @@ public final class Linq {
 	 * @param <T>   the entity type owning the first argument's column
 	 * @return the constructor projection as an {@link Expr}
 	 */
-	public static <T> Expr NEW(Class<?> dto, Col<T> first, Object... rest) {
+	public static <T> Expr NEW(Class<?> dto, TypedCol<T, ?> first, Object... rest) {
 		Object[] args = new Object[rest.length + 1];
-		args[0] = Expr.col(first);
+		args[0] = Expr.typedCol(first);
 		System.arraycopy(rest, 0, args, 1, rest.length);
 		return Expr.of(ctx -> "new " + dto.getName() + "(" + Expr.list(ctx, args) + ")");
 	}
 
 	/**
 	 * A {@code treat(expr as Subtype)} down-cast for polymorphic associations;
-	 * follow with {@link Expr#ᐧ(Col)} to access a subtype field.
+	 * follow with {@link Expr#ᐧ(TypedCol)} to access a subtype field.
 	 *
 	 * <p>
 	 * Example:
@@ -827,7 +1724,7 @@ public final class Linq {
 
 	/**
 	 * A {@code treat(rootEntity as Subtype)} down-cast — shorthand for
-	 * {@code TREAT(entity(rootType), subtype)}; follow with {@link Expr#ᐧ(Col)} to
+	 * {@code TREAT(entity(rootType), subtype)}; follow with {@link Expr#ᐧ(TypedCol)} to
 	 * access a subtype field.
 	 *
 	 * <p>
@@ -850,11 +1747,11 @@ public final class Linq {
 
 	/**
 	 * The {@code partition by ...} clause of a window; chain
-	 * {@link Expr#ORDERㅤBY(Col)} and {@link Expr#DESC()} for ordering.
+	 * {@link Expr#ORDERㅤBY(TypedCol)} and {@link Expr#DESC()} for ordering.
 	 *
 	 * <p>
 	 * Example:
-	 * {@code PARTITIONㅤBY(col(Order::customerId)).ORDERㅤBY(Order::total).DESC()}
+	 * {@code PARTITIONㅤBY(typedCol(Order::customerId)).ORDERㅤBY(Order::total).DESC()}
 	 * &rarr; {@code partition by o.customerId order by o.total desc}.
 	 * </p>
 	 *
@@ -877,10 +1774,10 @@ public final class Linq {
 	 *         {@link Expr#OVER(Expr)}
 	 */
 	@SafeVarargs
-	public static <T> Expr ㅤPARTITIONㅤBYㅤ(Col<T>... cols) {
+	public static <T> Expr ㅤPARTITIONㅤBYㅤ(TypedCol<T, ?>... cols) {
 		Object[] exprs = new Object[cols.length];
 		for (int i = 0; i < cols.length; i++) {
-			exprs[i] = Expr.col(cols[i]);
+			exprs[i] = Expr.typedCol(cols[i]);
 		}
 		return Expr.of(ctx -> "partition by " + Expr.list(ctx, exprs));
 	}
@@ -898,22 +1795,54 @@ public final class Linq {
 	 *            {@code null}
 	 * @param r   the right operand: an {@link Expr}, a {@link #param(String)}, a
 	 *            sub-query {@link Q} or a literal. To test for null use
-	 *            {@link Cond#ISㅤNULL(Col)} — passing {@code null} here renders the
+	 *            {@link Cond#ISㅤNULL(TypedCol)} — passing {@code null} here renders the
 	 *            literal text {@code null}.
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate; combine with {@link #ㅤANDㅤ(Cond...)} /
 	 *         {@link #ㅤORㅤ(Cond...)}
 	 */
-	public static <T> Cond ㅤᆖㅤ(Col<T> l, Object r) {
+	public static <T> Cond ㅤᆖㅤ(TypedCol<T, ?> l, Object r) {
 		return new Cond().ᆖ(l, r);
 	} // =
+
+	/**
+	 * Equality predicate ({@code =}) with bare columns on both sides, e.g.
+	 * {@code ㅤᆖㅤ(Order::a, Order::b)} &rarr; {@code a = b} — no {@link #typedCol(TypedCol) typedCol(...)} wrapping
+	 * needed for the right operand.
+	 *
+	 * @param l   the left column getter (method reference); must not be {@code null}
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <T, R> Cond ㅤᆖㅤ(TypedCol<T, ?> l, TypedCol<R, ?> r) {
+		return new Cond().ᆖ(l, r);
+	}
+
+	/**
+	 * Equality predicate ({@code =}) with both columns qualified by an explicit alias — for comparing
+	 * two rows of the <em>same</em> entity in a self-join, e.g.
+	 * {@code ㅤᆖㅤ("a", X::name, "b", X::name)} &rarr; {@code a.name = b.name}.
+	 *
+	 * @param aliasL the range-variable alias qualifying the left column; must not be {@code null}
+	 * @param l      the left column getter (method reference); must not be {@code null}
+	 * @param aliasR the range-variable alias qualifying the right column; must not be {@code null}
+	 * @param r      the right column getter (method reference); must not be {@code null}
+	 * @param <T>    the entity type owning the left column
+	 * @param <R>    the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <T, R> Cond ㅤᆖㅤ(String aliasL, TypedCol<T, ?> l, String aliasR, TypedCol<R, ?> r) {
+		return new Cond().ᆖ(typedCol(aliasL, l), typedCol(aliasR, r));
+	}
 
 	/**
 	 * Equality predicate ({@code =}) with an expression left operand.
 	 *
 	 * @param l the left operand (e.g. an aggregate {@link Expr}); must not be
 	 *          {@code null}
-	 * @param r the right operand (see {@link #ㅤᆖㅤ(Col, Object)}); {@code null}
+	 * @param r the right operand (see {@link #ㅤᆖㅤ(TypedCol, Object)}); {@code null}
 	 *          renders as literal {@code null}
 	 * @return a leaf predicate
 	 */
@@ -933,9 +1862,22 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤᐸㅤ(Col<T> l, Object r) {
+	public static <T> Cond ㅤᐸㅤ(TypedCol<T, ?> l, Object r) {
 		return new Cond().ᐸ(l, r);
 	} // <
+
+	/**
+	 * Less-than predicate ({@code <}) with bare columns on both sides — see {@link #ㅤᆖㅤ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter (method reference); must not be {@code null}
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <T, R> Cond ㅤᐸㅤ(TypedCol<T, ?> l, TypedCol<R, ?> r) {
+		return new Cond().ᐸ(l, r);
+	}
 
 	/**
 	 * Less-than predicate ({@code <}) with an expression left operand.
@@ -960,9 +1902,22 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤᐳㅤ(Col<T> l, Object r) {
+	public static <T> Cond ㅤᐳㅤ(TypedCol<T, ?> l, Object r) {
 		return new Cond().ᐳ(l, r);
 	} // >
+
+	/**
+	 * Greater-than predicate ({@code >}) with bare columns on both sides — see {@link #ㅤᆖㅤ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter (method reference); must not be {@code null}
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <T, R> Cond ㅤᐳㅤ(TypedCol<T, ?> l, TypedCol<R, ?> r) {
+		return new Cond().ᐳ(l, r);
+	}
 
 	/**
 	 * Greater-than predicate ({@code >}) with an expression left operand.
@@ -987,9 +1942,23 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤᐸᆖㅤ(Col<T> l, Object r) {
+	public static <T> Cond ㅤᐸᆖㅤ(TypedCol<T, ?> l, Object r) {
 		return new Cond().ᐸᆖ(l, r);
 	} // <=
+
+	/**
+	 * Less-than-or-equal predicate ({@code <=}) with bare columns on both sides — see
+	 * {@link #ㅤᆖㅤ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter (method reference); must not be {@code null}
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <T, R> Cond ㅤᐸᆖㅤ(TypedCol<T, ?> l, TypedCol<R, ?> r) {
+		return new Cond().ᐸᆖ(l, r);
+	}
 
 	/**
 	 * Less-than-or-equal predicate ({@code <=}) with an expression left operand.
@@ -1014,9 +1983,23 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤᐳᆖㅤ(Col<T> l, Object r) {
+	public static <T> Cond ㅤᐳᆖㅤ(TypedCol<T, ?> l, Object r) {
 		return new Cond().ᐳᆖ(l, r);
 	} // >=
+
+	/**
+	 * Greater-than-or-equal predicate ({@code >=}) with bare columns on both sides — see
+	 * {@link #ㅤᆖㅤ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter (method reference); must not be {@code null}
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <T, R> Cond ㅤᐳᆖㅤ(TypedCol<T, ?> l, TypedCol<R, ?> r) {
+		return new Cond().ᐳᆖ(l, r);
+	}
 
 	/**
 	 * Greater-than-or-equal predicate ({@code >=}) with an expression left operand.
@@ -1042,9 +2025,53 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤᐸᐳㅤ(Col<T> l, Object r) {
+	public static <T> Cond ㅤᐸᐳㅤ(TypedCol<T, ?> l, Object r) {
 		return new Cond().ᐸᐳ(l, r);
 	} // <>
+
+	/**
+	 * Not-equal predicate ({@code <>}) with bare columns on both sides — see {@link #ㅤᆖㅤ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter (method reference); must not be {@code null}
+	 * @param r   the right column getter (method reference); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <T, R> Cond ㅤᐸᐳㅤ(TypedCol<T, ?> l, TypedCol<R, ?> r) {
+		return new Cond().ᐸᐳ(l, r);
+	}
+
+	/**
+	 * Not-equal predicate ({@code <>}) with both columns qualified by an explicit alias — for
+	 * comparing two rows of the <em>same</em> entity in a self-join — see
+	 * {@link #ㅤᆖㅤ(String, TypedCol, String, TypedCol)}.
+	 *
+	 * @param aliasL the range-variable alias qualifying the left column; must not be {@code null}
+	 * @param l      the left column getter (method reference); must not be {@code null}
+	 * @param aliasR the range-variable alias qualifying the right column; must not be {@code null}
+	 * @param r      the right column getter (method reference); must not be {@code null}
+	 * @param <T>    the entity type owning the left column
+	 * @param <R>    the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <T, R> Cond ㅤᐸᐳㅤ(String aliasL, TypedCol<T, ?> l, String aliasR, TypedCol<R, ?> r) {
+		return new Cond().ᐸᐳ(typedCol(aliasL, l), typedCol(aliasR, r));
+	}
+
+	/**
+	 * Not-equal predicate ({@code <>}) with an arbitrary left expression (e.g. {@code LOWER(...)})
+	 * and a right column qualified by an explicit alias.
+	 *
+	 * @param l      the left operand (e.g. an {@link Expr}); must not be {@code null}
+	 * @param aliasR the range-variable alias qualifying the right column; must not be {@code null}
+	 * @param r      the right column getter (method reference); must not be {@code null}
+	 * @param <R>    the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <R> Cond ㅤᐸᐳㅤ(Object l, String aliasR, TypedCol<R, ?> r) {
+		return new Cond().ᐸᐳ(l, typedCol(aliasR, r));
+	}
 
 	/**
 	 * Not-equal predicate ({@code <>}) with an expression left operand.
@@ -1072,7 +2099,21 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤINㅤ(Col<T> l, Object r) {
+	public static <T> Cond ㅤINㅤ(TypedCol<T, ?> l, Object r) {
+		return new Cond().IN(l, r);
+	}
+
+	/**
+	 * Membership predicate ({@code in (...)}) with bare columns on both sides — see
+	 * {@link #ㅤᆖㅤ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter (method reference); must not be {@code null}
+	 * @param r   the right column getter (typically collection-valued); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <T, R> Cond ㅤINㅤ(TypedCol<T, ?> l, TypedCol<R, ?> r) {
 		return new Cond().IN(l, r);
 	}
 
@@ -1102,7 +2143,21 @@ public final class Linq {
 	 * @param <T> the entity type owning the left column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤLIKEㅤ(Col<T> l, Object r) {
+	public static <T> Cond ㅤLIKEㅤ(TypedCol<T, ?> l, Object r) {
+		return new Cond().LIKE(l, r);
+	}
+
+	/**
+	 * Pattern-match predicate ({@code like}) with bare columns on both sides — see
+	 * {@link #ㅤᆖㅤ(TypedCol, TypedCol)}.
+	 *
+	 * @param l   the left column getter (method reference); must not be {@code null}
+	 * @param r   the right column getter (the pattern); must not be {@code null}
+	 * @param <T> the entity type owning the left column
+	 * @param <R> the entity type owning the right column
+	 * @return a leaf predicate
+	 */
+	public static <T, R> Cond ㅤLIKEㅤ(TypedCol<T, ?> l, TypedCol<R, ?> r) {
 		return new Cond().LIKE(l, r);
 	}
 
@@ -1140,7 +2195,7 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤISㅤNULLㅤ(Col<T> c) {
+	public static <T> Cond ㅤISㅤNULLㅤ(TypedCol<T, ?> c) {
 		return new Cond().ISㅤNULL(c);
 	}
 
@@ -1151,7 +2206,7 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤISㅤNOTㅤNULLㅤ(Col<T> c) {
+	public static <T> Cond ㅤISㅤNOTㅤNULLㅤ(TypedCol<T, ?> c) {
 		return new Cond().ISㅤNOTㅤNULL(c);
 	}
 
@@ -1162,7 +2217,7 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤISㅤEMPTYㅤ(Col<T> c) {
+	public static <T> Cond ㅤISㅤEMPTYㅤ(TypedCol<T, ?> c) {
 		return new Cond().ISㅤEMPTY(c);
 	}
 
@@ -1174,7 +2229,7 @@ public final class Linq {
 	 * @param <T> the entity type owning the column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤISㅤNOTㅤEMPTYㅤ(Col<T> c) {
+	public static <T> Cond ㅤISㅤNOTㅤEMPTYㅤ(TypedCol<T, ?> c) {
 		return new Cond().ISㅤNOTㅤEMPTY(c);
 	}
 
@@ -1191,7 +2246,7 @@ public final class Linq {
 
 	/**
 	 * Collection-membership predicate ({@code value member of collection}), e.g.
-	 * {@code MEMBERㅤOF(param("product"), col(Customer::wishlist))} &rarr;
+	 * {@code MEMBERㅤOF(param("product"), typedCol(Customer::wishlist))} &rarr;
 	 * {@code :product member of c.wishlist}.
 	 *
 	 * @param value      the element expression (literal/{@link #param(String)});
@@ -1216,8 +2271,8 @@ public final class Linq {
 	 * @param <T>        the entity type owning the column
 	 * @return a leaf predicate
 	 */
-	public static <T> Cond ㅤMEMBERㅤOFㅤ(Object value, Col<T> collection) {
-		return new Cond().MEMBERㅤOF(value, Expr.col(collection));
+	public static <T> Cond ㅤMEMBERㅤOFㅤ(Object value, TypedCol<T, ?> collection) {
+		return new Cond().MEMBERㅤOF(value, Expr.typedCol(collection));
 	}
 
 	/**

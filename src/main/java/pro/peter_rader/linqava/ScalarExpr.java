@@ -50,7 +50,17 @@ public final class ScalarExpr<T> extends Expr {
 	}
 
 	@Override
+	public <T> ScalarExpr<Boolean> ㅤᆖㅤ(TypedCol<T, ?> other) {
+		return bool(super.ㅤᆖㅤ(other));
+	}
+
+	@Override
 	public ScalarExpr<Boolean> ㅤᐸㅤ(Object other) {
+		return bool(super.ㅤᐸㅤ(other));
+	}
+
+	@Override
+	public <T> ScalarExpr<Boolean> ㅤᐸㅤ(TypedCol<T, ?> other) {
 		return bool(super.ㅤᐸㅤ(other));
 	}
 
@@ -60,7 +70,17 @@ public final class ScalarExpr<T> extends Expr {
 	}
 
 	@Override
+	public <T> ScalarExpr<Boolean> ㅤᐳㅤ(TypedCol<T, ?> other) {
+		return bool(super.ㅤᐳㅤ(other));
+	}
+
+	@Override
 	public ScalarExpr<Boolean> ᐸᆖ(Object other) {
+		return bool(super.ᐸᆖ(other));
+	}
+
+	@Override
+	public <T> ScalarExpr<Boolean> ᐸᆖ(TypedCol<T, ?> other) {
 		return bool(super.ᐸᆖ(other));
 	}
 
@@ -70,7 +90,17 @@ public final class ScalarExpr<T> extends Expr {
 	}
 
 	@Override
+	public <T> ScalarExpr<Boolean> ᐳᆖ(TypedCol<T, ?> other) {
+		return bool(super.ᐳᆖ(other));
+	}
+
+	@Override
 	public ScalarExpr<Boolean> ᐸᐳ(Object other) {
+		return bool(super.ᐸᐳ(other));
+	}
+
+	@Override
+	public <T> ScalarExpr<Boolean> ᐸᐳ(TypedCol<T, ?> other) {
 		return bool(super.ᐸᐳ(other));
 	}
 

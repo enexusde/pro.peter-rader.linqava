@@ -30,7 +30,7 @@ import jakarta.persistence.TypedQuery;
  * variant: it does not extend or implement anything that declares them, so writing
  * {@code SELECTㅤꁘㅤFROM(Order.class).AS("o")} or adding a join simply does not compile. That is the
  * point — a plain "give me all/matching instances of one entity" query never needs a range-variable
- * alias (there is only ever one source, so {@link Linq#col(Col) col(...)} references render as bare
+ * alias (there is only ever one source, so {@link Linq#typedCol(TypedCol) typedCol(...)} references render as bare
  * property names) and never has a second source to join against.
  * </p>
  *
@@ -75,8 +75,8 @@ public final class EntityQ<E> {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<EntityQ<E>> ㅤWHEREㅤ(Col<T> col) {
-		return where(Expr.col(col), Names.property(col), "and");
+	public <T> WhereStep<EntityQ<E>> ㅤWHEREㅤ(TypedCol<T, ?> col) {
+		return where(Expr.typedCol(col), Names.property(col), "and");
 	}
 
 	/**
@@ -99,8 +99,8 @@ public final class EntityQ<E> {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<EntityQ<E>> ㅤANDㅤ(Col<T> col) {
-		return where(Expr.col(col), Names.property(col), "and");
+	public <T> WhereStep<EntityQ<E>> ㅤANDㅤ(TypedCol<T, ?> col) {
+		return where(Expr.typedCol(col), Names.property(col), "and");
 	}
 
 	/**
@@ -111,8 +111,8 @@ public final class EntityQ<E> {
 	 * @param <T> the entity type owning the column
 	 * @return the pending comparison, awaiting an operator
 	 */
-	public <T> WhereStep<EntityQ<E>> ㅤORㅤ(Col<T> col) {
-		return where(Expr.col(col), Names.property(col), "or");
+	public <T> WhereStep<EntityQ<E>> ㅤORㅤ(TypedCol<T, ?> col) {
+		return where(Expr.typedCol(col), Names.property(col), "or");
 	}
 
 	private WhereStep<EntityQ<E>> where(Expr left, String leftHint, String connector) {
@@ -144,9 +144,9 @@ public final class EntityQ<E> {
 	 * @return this builder, for chaining
 	 */
 	@SafeVarargs
-	public final <T> EntityQ<E> ㅤORDERㅤBYㅤ(Col<T>... cols) {
-		for (Col<T> col : cols) {
-			orderBy.add(Expr.col(col));
+	public final <T> EntityQ<E> ㅤORDERㅤBYㅤ(TypedCol<T, ?>... cols) {
+		for (TypedCol<T, ?> col : cols) {
+			orderBy.add(Expr.typedCol(col));
 		}
 		return this;
 	}
