@@ -1129,7 +1129,7 @@ public final class Linq {
 	 * calling this directly.
 	 */
 	static <E> EntityExpr<E> entity(Class<E> type) {
-		String name = type.getSimpleName();
+		String name = type.getName();
 		Expr render = Expr.of(ctx -> {
 			String a = ctx.aliasFor(name);
 			return a == null ? name : a;
@@ -1898,13 +1898,13 @@ public final class Linq {
 	 * </p>
 	 *
 	 * @param expr the expression to cast; must not be {@code null}
-	 * @param type the target subtype; must not be {@code null}. Its simple name is
+	 * @param type the target subtype; must not be {@code null}. Its fully-qualified name is
 	 *             emitted.
 	 * @return the cast as an {@link Expr}
 	 */
 	public static Expr ㅤTREATㅤ(Object expr, Class<?> type) {
 		Expr e = Expr.val(expr);
-		return Expr.of(ctx -> "treat(" + e.render(ctx) + " as " + type.getSimpleName() + ")");
+		return Expr.of(ctx -> "treat(" + e.render(ctx) + " as " + type.getName() + ")");
 	}
 
 	/**
@@ -1920,7 +1920,7 @@ public final class Linq {
 	 *
 	 * @param rootType the entity being cast (its alias is emitted); must not be
 	 *                 {@code null}, e.g. {@code Payment.class}
-	 * @param subtype  the target subtype; must not be {@code null}. Its simple name
+	 * @param subtype  the target subtype; must not be {@code null}. Its fully-qualified name
 	 *                 is emitted.
 	 * @return the cast as an {@link Expr}
 	 */

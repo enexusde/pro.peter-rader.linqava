@@ -105,7 +105,7 @@ public class H2IntegrationTest {
 		em.flush();
 
 		Q<Object> q = SELECTㅤ(Order::getId, "id", Order::getStatus, "status").ㅤFROMㅤ(Order.class);
-		assertEquals("select id as id, status as status from Order", q.getUnsafeHql());
+		assertEquals("select id as id, status as status from pro.peter_rader.linqava.h2.Order", q.getUnsafeHql());
 
 		List<Object[]> rows = q.via(em, Object[].class);
 
@@ -233,7 +233,7 @@ public class H2IntegrationTest {
 		em.flush();
 
 		EntityQ<Order> q = SELECTㅤꁘㅤFROM(Order.class).ㅤORDERㅤBYㅤ(Order::getTotal).LIMIT(2).OFFSET(1);
-		assertEquals("from Order order by total limit 2 offset 1", q.getUnsafeHql());
+		assertEquals("from pro.peter_rader.linqava.h2.Order order by total limit 2 offset 1", q.getUnsafeHql());
 
 		List<Order> page = toList(q.via(em));
 
@@ -254,7 +254,7 @@ public class H2IntegrationTest {
 
 		Q<Object> q = SELECTㅤ(ㅤCASTㅤ(Order::getTotal, String.class)).ㅤFROMㅤ(Order.class).ㅤAS("o")
 				.ㅤWHEREㅤ(Order::getStatus).ㅤᆖㅤ("PAID");
-		assertEquals("select cast(o.total as String) from Order o where o.status = 'PAID'", q.getUnsafeHql());
+		assertEquals("select cast(o.total as String) from pro.peter_rader.linqava.h2.Order o where o.status = 'PAID'", q.getUnsafeHql());
 
 		List<String> results = q.via(em, String.class);
 
@@ -272,7 +272,7 @@ public class H2IntegrationTest {
 		em.flush();
 
 		Q<Object> q = SELECTㅤ(CONCAT(Order::getStatus, "-", "done")).ㅤFROMㅤ(Order.class).ㅤAS("o");
-		assertEquals("select concat(o.status, '-', 'done') from Order o", q.getUnsafeHql());
+		assertEquals("select concat(o.status, '-', 'done') from pro.peter_rader.linqava.h2.Order o", q.getUnsafeHql());
 
 		List<String> results = q.via(em, String.class);
 
@@ -391,7 +391,7 @@ public class H2IntegrationTest {
 
 		Grouped<Object> q = SELECTㅤ(Order::getStatus, COUNT(Order::getId)).ㅤFROMㅤ(Order.class).ㅤAS("o")
 				.GROUPㅤBY(Order::getStatus);
-		assertEquals("select o.status, count(o.id) from Order o group by o.status", q.getUnsafeHql());
+		assertEquals("select o.status, count(o.id) from pro.peter_rader.linqava.h2.Order o group by o.status", q.getUnsafeHql());
 
 		List<Object[]> rows = q.via(em, Object[].class);
 
@@ -420,7 +420,7 @@ public class H2IntegrationTest {
 		Grouped<Object> q = SELECTㅤ(NEW(StatusCount.class, Order::getStatus, COUNT(Order::getId))).ㅤFROMㅤ(Order.class)
 				.ㅤAS("o").GROUPㅤBY(Order::getStatus);
 		assertEquals("select new pro.peter_rader.linqava.h2.StatusCount(o.status, count(o.id)) "
-				+ "from Order o group by o.status", q.getUnsafeHql());
+				+ "from pro.peter_rader.linqava.h2.Order o group by o.status", q.getUnsafeHql());
 
 		List<StatusCount> rows = q.via(em, StatusCount.class);
 
@@ -443,7 +443,7 @@ public class H2IntegrationTest {
 		em.flush();
 
 		ScalarQ<Long> q = SELECTㅤ(COUNTㅤꁘ()).ㅤFROMㅤ(Order.class);
-		assertEquals("select count(*) from Order", q.getUnsafeHql());
+		assertEquals("select count(*) from pro.peter_rader.linqava.h2.Order", q.getUnsafeHql());
 
 		long count = q.via(em);
 
@@ -470,7 +470,7 @@ public class H2IntegrationTest {
 
 		ScalarQ<Long> q = SELECTㅤ(COUNTㅤꁘ()).ㅤFROMㅤ(Order.class).ㅤWHEREㅤ(Order::getCustomer).ㅤᆖㅤ(c)
 				.ㅤANDㅤ(Order::getDiscount).ISㅤNOTㅤNULL();
-		assertTrue(q.getUnsafeHql().startsWith("select count(*) from Order where customer = "));
+		assertTrue(q.getUnsafeHql().startsWith("select count(*) from pro.peter_rader.linqava.h2.Order where customer = "));
 		assertTrue(q.getUnsafeHql().endsWith(" and discount is not null"));
 
 		long count = q.via(em);
@@ -495,7 +495,7 @@ public class H2IntegrationTest {
 
 		ScalarQ<Boolean> q = SELECTㅤ(COUNTㅤꁘ().ㅤᐳㅤ(1).ㅤANDㅤ(COUNTㅤꁘ()).ㅤᐸㅤ(5).ㅤAS("x")).ㅤFROMㅤ(Order.class)
 				.ㅤWHEREㅤ(Order::getCustomer).ㅤᆖㅤ(c).ㅤANDㅤ(Order::getStatus).ㅤᆖㅤ("PAID");
-		assertTrue(q.getUnsafeHql().startsWith("select count(*) > 1 and count(*) < 5 as x from Order where customer = "));
+		assertTrue(q.getUnsafeHql().startsWith("select count(*) > 1 and count(*) < 5 as x from pro.peter_rader.linqava.h2.Order where customer = "));
 
 		boolean withinRange = q.via(em);
 

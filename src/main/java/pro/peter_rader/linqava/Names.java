@@ -61,13 +61,16 @@ public final class Names {
 	}
 
 	/**
-	 * The simple name of the entity declaring the getter, e.g. {@code Order::id} ->
-	 * {@code "Order"}.
+	 * The fully-qualified name of the entity declaring the getter, e.g.
+	 * {@code pro.peter_rader.linqava.h2.Order::getId} -&gt;
+	 * {@code "pro.peter_rader.linqava.h2.Order"} — matches the fully-qualified name every
+	 * {@code FROM}/{@code JOIN}/{@code entity(...)}/{@code TREAT(...)} entry point now registers as
+	 * its alias-resolution key (see {@link Q#JOIN(Class)}, {@link Linq#entity(Class)}), so a bare
+	 * getter's declaring class resolves to the same alias regardless of how deeply nested its
+	 * package is.
 	 */
 	static String entity(Object col) {
-		String implClass = serialized(col).getImplClass(); // e.g. "linqava/Order"
-		int slash = implClass.lastIndexOf('/');
-		return slash < 0 ? implClass : implClass.substring(slash + 1);
+		return serialized(col).getImplClass().replace('/', '.'); // e.g. "linqava/Order" -> "linqava.Order"
 	}
 
 	/**

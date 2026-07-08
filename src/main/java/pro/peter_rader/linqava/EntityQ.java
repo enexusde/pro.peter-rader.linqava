@@ -223,7 +223,7 @@ public final class EntityQ<E> {
 	}
 
 	private String buildHql(RenderCtx ctx) {
-		String name = entityType.getSimpleName();
+		String name = entityType.getName();
 		StringBuilder sb = new StringBuilder();
 		// Deliberately "from X", not "select X from X": an unaliased "select X" is parsed by
 		// Hibernate as an entity TYPE LITERAL (relevant for polymorphic queries), not as a

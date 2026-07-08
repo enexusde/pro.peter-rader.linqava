@@ -118,7 +118,7 @@ public final class Q<E> {
 	}
 
 	Q<E> setFrom(Class<?> root) {
-		from = src(root.getSimpleName(), true, null);
+		from = src(root.getName(), true, null);
 		lastAliasable = from;
 		return this;
 	}
@@ -153,7 +153,7 @@ public final class Q<E> {
 	 * @return this builder, for chaining
 	 */
 	public Q<E> JOIN(Class<?> entity) {
-		return addJoin("join", src(entity.getSimpleName(), true, null));
+		return addJoin("join", src(entity.getName(), true, null));
 	}
 
 	/**
@@ -224,7 +224,7 @@ public final class Q<E> {
 	 * @return this builder, for chaining
 	 */
 	public Q<E> LEFTㅤJOIN(Class<?> entity) {
-		return addJoin("left join", src(entity.getSimpleName(), true, null));
+		return addJoin("left join", src(entity.getName(), true, null));
 	}
 
 	/**
