@@ -233,40 +233,53 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 1 explicitly aliased bare column — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 1 explicitly aliased bare column — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <T1> SelectStep<Object> SELECTㅤ(
-			TypedCol<T1, ?> first, String firstAlias) {
+	public static <T1> SelectStep<Object> SELECTㅤ(TypedCol<T1, ?> first, String firstAlias) {
 		return new SelectStep<>(new Q<Object>().addSelect(
 				Expr.typedCol(first).ㅤAS(firstAlias)));
 	}
 
 	/**
-	 * SELECT of 1 explicitly aliased bare column followed by arbitrary further columns/expressions —
-	 * for mixing an aliased getter with e.g. an aggregate or window function that carries its own
-	 * {@code .AS(...)}.
+	 * SELECT of 1 explicitly aliased bare column followed by arbitrary further
+	 * columns/expressions — for mixing an aliased getter with e.g. an aggregate or
+	 * window function that carries its own {@code .AS(...)}.
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
 	 * @param rest the remaining columns/expressions, in order; must not be {@code null}, may be empty
+	 * @param <T1> the entity type owning the first column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <T1> SelectStep<Object> SELECTㅤ(TypedCol<T1, ?> first, String firstAlias, Object... rest) {
-		Object[] args = new Object[rest.length + 1];
-		args[0] = Expr.typedCol(first).ㅤAS(firstAlias);
-		System.arraycopy(rest, 0, args, 1, rest.length);
-		return new SelectStep<>(new Q<Object>().addSelect(args));
+	public static <T1> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			Object... rest) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias)));
 	}
 
 	/**
-	 * SELECT of 2 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 2 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2> SelectStep<Object> SELECTㅤ(
@@ -278,27 +291,44 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 2 explicitly aliased bare columns followed by arbitrary further columns/expressions —
-	 * see {@link #SELECTㅤ(TypedCol, String, Object...)}.
+	 * SELECT of 2 explicitly aliased bare columns followed by arbitrary further
+	 * columns/expressions — for mixing an aliased getter with e.g. an aggregate or
+	 * window function that carries its own {@code .AS(...)}.
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
 	 * @param rest the remaining columns/expressions, in order; must not be {@code null}, may be empty
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <T1, T2> SelectStep<Object> SELECTㅤ(TypedCol<T1, ?> first, String firstAlias,
-			TypedCol<T2, ?> second, String secondAlias, Object... rest) {
-		Object[] args = new Object[rest.length + 2];
-		args[0] = Expr.typedCol(first).ㅤAS(firstAlias);
-		args[1] = Expr.typedCol(second).ㅤAS(secondAlias);
-		System.arraycopy(rest, 0, args, 2, rest.length);
-		return new SelectStep<>(new Q<Object>().addSelect(args));
+	public static <T1, T2> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			Object... rest) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias)));
 	}
 
 	/**
-	 * SELECT of 3 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 3 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3> SelectStep<Object> SELECTㅤ(
@@ -312,28 +342,52 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 3 explicitly aliased bare columns followed by arbitrary further columns/expressions —
-	 * see {@link #SELECTㅤ(TypedCol, String, Object...)}.
+	 * SELECT of 3 explicitly aliased bare columns followed by arbitrary further
+	 * columns/expressions — for mixing an aliased getter with e.g. an aggregate or
+	 * window function that carries its own {@code .AS(...)}.
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
 	 * @param rest the remaining columns/expressions, in order; must not be {@code null}, may be empty
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <T1, T2, T3> SelectStep<Object> SELECTㅤ(TypedCol<T1, ?> first, String firstAlias,
-			TypedCol<T2, ?> second, String secondAlias, TypedCol<T3, ?> third, String thirdAlias, Object... rest) {
-		Object[] args = new Object[rest.length + 3];
-		args[0] = Expr.typedCol(first).ㅤAS(firstAlias);
-		args[1] = Expr.typedCol(second).ㅤAS(secondAlias);
-		args[2] = Expr.typedCol(third).ㅤAS(thirdAlias);
-		System.arraycopy(rest, 0, args, 3, rest.length);
-		return new SelectStep<>(new Q<Object>().addSelect(args));
+	public static <T1, T2, T3> SelectStep<Object> SELECTㅤ(
+			TypedCol<T1, ?> first, String firstAlias,
+			TypedCol<T2, ?> second, String secondAlias,
+			TypedCol<T3, ?> third, String thirdAlias,
+			Object... rest) {
+		return new SelectStep<>(new Q<Object>().addSelect(
+				Expr.typedCol(first).ㅤAS(firstAlias),
+				Expr.typedCol(second).ㅤAS(secondAlias),
+				Expr.typedCol(third).ㅤAS(thirdAlias)));
 	}
 
 	/**
-	 * SELECT of 4 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 4 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4> SelectStep<Object> SELECTㅤ(
@@ -349,11 +403,27 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 5 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 5 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5> SelectStep<Object> SELECTㅤ(
@@ -371,11 +441,30 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 6 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 6 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6> SelectStep<Object> SELECTㅤ(
@@ -395,11 +484,33 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 7 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 7 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6, T7> SelectStep<Object> SELECTㅤ(
@@ -421,11 +532,36 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 8 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 8 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6, T7, T8> SelectStep<Object> SELECTㅤ(
@@ -449,11 +585,39 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 9 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 9 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9> SelectStep<Object> SELECTㅤ(
@@ -479,11 +643,42 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 10 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 10 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10> SelectStep<Object> SELECTㅤ(
@@ -511,11 +706,45 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 11 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 11 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param eleventh the eleventh column getter (method reference); must not be {@code null}
+	 * @param eleventhAlias the eleventh column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
+	 * @param <T11> the entity type owning the eleventh column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11> SelectStep<Object> SELECTㅤ(
@@ -545,11 +774,48 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 12 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 12 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param eleventh the eleventh column getter (method reference); must not be {@code null}
+	 * @param eleventhAlias the eleventh column's alias; must not be {@code null}
+	 * @param twelfth the twelfth column getter (method reference); must not be {@code null}
+	 * @param twelfthAlias the twelfth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
+	 * @param <T11> the entity type owning the eleventh column
+	 * @param <T12> the entity type owning the twelfth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12> SelectStep<Object> SELECTㅤ(
@@ -581,11 +847,51 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 13 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 13 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param eleventh the eleventh column getter (method reference); must not be {@code null}
+	 * @param eleventhAlias the eleventh column's alias; must not be {@code null}
+	 * @param twelfth the twelfth column getter (method reference); must not be {@code null}
+	 * @param twelfthAlias the twelfth column's alias; must not be {@code null}
+	 * @param thirteenth the thirteenth column getter (method reference); must not be {@code null}
+	 * @param thirteenthAlias the thirteenth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
+	 * @param <T11> the entity type owning the eleventh column
+	 * @param <T12> the entity type owning the twelfth column
+	 * @param <T13> the entity type owning the thirteenth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13> SelectStep<Object> SELECTㅤ(
@@ -619,15 +925,57 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 14 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 14 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param eleventh the eleventh column getter (method reference); must not be {@code null}
+	 * @param eleventhAlias the eleventh column's alias; must not be {@code null}
+	 * @param twelfth the twelfth column getter (method reference); must not be {@code null}
+	 * @param twelfthAlias the twelfth column's alias; must not be {@code null}
+	 * @param thirteenth the thirteenth column getter (method reference); must not be {@code null}
+	 * @param thirteenthAlias the thirteenth column's alias; must not be {@code null}
+	 * @param fourteenth the fourteenth column getter (method reference); must not be {@code null}
+	 * @param fourteenthAlias the fourteenth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
+	 * @param <T11> the entity type owning the eleventh column
+	 * @param <T12> the entity type owning the twelfth column
+	 * @param <T13> the entity type owning the thirteenth column
+	 * @param <T14> the entity type owning the fourteenth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14>
-			SelectStep<Object> SELECTㅤ(
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14> SelectStep<Object> SELECTㅤ(
 			TypedCol<T1, ?> first, String firstAlias,
 			TypedCol<T2, ?> second, String secondAlias,
 			TypedCol<T3, ?> third, String thirdAlias,
@@ -660,15 +1008,60 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 15 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 15 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param eleventh the eleventh column getter (method reference); must not be {@code null}
+	 * @param eleventhAlias the eleventh column's alias; must not be {@code null}
+	 * @param twelfth the twelfth column getter (method reference); must not be {@code null}
+	 * @param twelfthAlias the twelfth column's alias; must not be {@code null}
+	 * @param thirteenth the thirteenth column getter (method reference); must not be {@code null}
+	 * @param thirteenthAlias the thirteenth column's alias; must not be {@code null}
+	 * @param fourteenth the fourteenth column getter (method reference); must not be {@code null}
+	 * @param fourteenthAlias the fourteenth column's alias; must not be {@code null}
+	 * @param fifteenth the fifteenth column getter (method reference); must not be {@code null}
+	 * @param fifteenthAlias the fifteenth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
+	 * @param <T11> the entity type owning the eleventh column
+	 * @param <T12> the entity type owning the twelfth column
+	 * @param <T13> the entity type owning the thirteenth column
+	 * @param <T14> the entity type owning the fourteenth column
+	 * @param <T15> the entity type owning the fifteenth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15>
-			SelectStep<Object> SELECTㅤ(
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15> SelectStep<Object> SELECTㅤ(
 			TypedCol<T1, ?> first, String firstAlias,
 			TypedCol<T2, ?> second, String secondAlias,
 			TypedCol<T3, ?> third, String thirdAlias,
@@ -703,15 +1096,63 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 16 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 16 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param eleventh the eleventh column getter (method reference); must not be {@code null}
+	 * @param eleventhAlias the eleventh column's alias; must not be {@code null}
+	 * @param twelfth the twelfth column getter (method reference); must not be {@code null}
+	 * @param twelfthAlias the twelfth column's alias; must not be {@code null}
+	 * @param thirteenth the thirteenth column getter (method reference); must not be {@code null}
+	 * @param thirteenthAlias the thirteenth column's alias; must not be {@code null}
+	 * @param fourteenth the fourteenth column getter (method reference); must not be {@code null}
+	 * @param fourteenthAlias the fourteenth column's alias; must not be {@code null}
+	 * @param fifteenth the fifteenth column getter (method reference); must not be {@code null}
+	 * @param fifteenthAlias the fifteenth column's alias; must not be {@code null}
+	 * @param sixteenth the sixteenth column getter (method reference); must not be {@code null}
+	 * @param sixteenthAlias the sixteenth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
+	 * @param <T11> the entity type owning the eleventh column
+	 * @param <T12> the entity type owning the twelfth column
+	 * @param <T13> the entity type owning the thirteenth column
+	 * @param <T14> the entity type owning the fourteenth column
+	 * @param <T15> the entity type owning the fifteenth column
+	 * @param <T16> the entity type owning the sixteenth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16>
-			SelectStep<Object> SELECTㅤ(
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16> SelectStep<Object> SELECTㅤ(
 			TypedCol<T1, ?> first, String firstAlias,
 			TypedCol<T2, ?> second, String secondAlias,
 			TypedCol<T3, ?> third, String thirdAlias,
@@ -748,15 +1189,66 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 17 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 17 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param eleventh the eleventh column getter (method reference); must not be {@code null}
+	 * @param eleventhAlias the eleventh column's alias; must not be {@code null}
+	 * @param twelfth the twelfth column getter (method reference); must not be {@code null}
+	 * @param twelfthAlias the twelfth column's alias; must not be {@code null}
+	 * @param thirteenth the thirteenth column getter (method reference); must not be {@code null}
+	 * @param thirteenthAlias the thirteenth column's alias; must not be {@code null}
+	 * @param fourteenth the fourteenth column getter (method reference); must not be {@code null}
+	 * @param fourteenthAlias the fourteenth column's alias; must not be {@code null}
+	 * @param fifteenth the fifteenth column getter (method reference); must not be {@code null}
+	 * @param fifteenthAlias the fifteenth column's alias; must not be {@code null}
+	 * @param sixteenth the sixteenth column getter (method reference); must not be {@code null}
+	 * @param sixteenthAlias the sixteenth column's alias; must not be {@code null}
+	 * @param seventeenth the seventeenth column getter (method reference); must not be {@code null}
+	 * @param seventeenthAlias the seventeenth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
+	 * @param <T11> the entity type owning the eleventh column
+	 * @param <T12> the entity type owning the twelfth column
+	 * @param <T13> the entity type owning the thirteenth column
+	 * @param <T14> the entity type owning the fourteenth column
+	 * @param <T15> the entity type owning the fifteenth column
+	 * @param <T16> the entity type owning the sixteenth column
+	 * @param <T17> the entity type owning the seventeenth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
-	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17>
-			SelectStep<Object> SELECTㅤ(
+	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17> SelectStep<Object> SELECTㅤ(
 			TypedCol<T1, ?> first, String firstAlias,
 			TypedCol<T2, ?> second, String secondAlias,
 			TypedCol<T3, ?> third, String thirdAlias,
@@ -795,11 +1287,66 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 18 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 18 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param eleventh the eleventh column getter (method reference); must not be {@code null}
+	 * @param eleventhAlias the eleventh column's alias; must not be {@code null}
+	 * @param twelfth the twelfth column getter (method reference); must not be {@code null}
+	 * @param twelfthAlias the twelfth column's alias; must not be {@code null}
+	 * @param thirteenth the thirteenth column getter (method reference); must not be {@code null}
+	 * @param thirteenthAlias the thirteenth column's alias; must not be {@code null}
+	 * @param fourteenth the fourteenth column getter (method reference); must not be {@code null}
+	 * @param fourteenthAlias the fourteenth column's alias; must not be {@code null}
+	 * @param fifteenth the fifteenth column getter (method reference); must not be {@code null}
+	 * @param fifteenthAlias the fifteenth column's alias; must not be {@code null}
+	 * @param sixteenth the sixteenth column getter (method reference); must not be {@code null}
+	 * @param sixteenthAlias the sixteenth column's alias; must not be {@code null}
+	 * @param seventeenth the seventeenth column getter (method reference); must not be {@code null}
+	 * @param seventeenthAlias the seventeenth column's alias; must not be {@code null}
+	 * @param eighteenth the eighteenth column getter (method reference); must not be {@code null}
+	 * @param eighteenthAlias the eighteenth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
+	 * @param <T11> the entity type owning the eleventh column
+	 * @param <T12> the entity type owning the twelfth column
+	 * @param <T13> the entity type owning the thirteenth column
+	 * @param <T14> the entity type owning the fourteenth column
+	 * @param <T15> the entity type owning the fifteenth column
+	 * @param <T16> the entity type owning the sixteenth column
+	 * @param <T17> the entity type owning the seventeenth column
+	 * @param <T18> the entity type owning the eighteenth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17,
@@ -845,11 +1392,69 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 19 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 19 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param eleventh the eleventh column getter (method reference); must not be {@code null}
+	 * @param eleventhAlias the eleventh column's alias; must not be {@code null}
+	 * @param twelfth the twelfth column getter (method reference); must not be {@code null}
+	 * @param twelfthAlias the twelfth column's alias; must not be {@code null}
+	 * @param thirteenth the thirteenth column getter (method reference); must not be {@code null}
+	 * @param thirteenthAlias the thirteenth column's alias; must not be {@code null}
+	 * @param fourteenth the fourteenth column getter (method reference); must not be {@code null}
+	 * @param fourteenthAlias the fourteenth column's alias; must not be {@code null}
+	 * @param fifteenth the fifteenth column getter (method reference); must not be {@code null}
+	 * @param fifteenthAlias the fifteenth column's alias; must not be {@code null}
+	 * @param sixteenth the sixteenth column getter (method reference); must not be {@code null}
+	 * @param sixteenthAlias the sixteenth column's alias; must not be {@code null}
+	 * @param seventeenth the seventeenth column getter (method reference); must not be {@code null}
+	 * @param seventeenthAlias the seventeenth column's alias; must not be {@code null}
+	 * @param eighteenth the eighteenth column getter (method reference); must not be {@code null}
+	 * @param eighteenthAlias the eighteenth column's alias; must not be {@code null}
+	 * @param nineteenth the nineteenth column getter (method reference); must not be {@code null}
+	 * @param nineteenthAlias the nineteenth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
+	 * @param <T11> the entity type owning the eleventh column
+	 * @param <T12> the entity type owning the twelfth column
+	 * @param <T13> the entity type owning the thirteenth column
+	 * @param <T14> the entity type owning the fourteenth column
+	 * @param <T15> the entity type owning the fifteenth column
+	 * @param <T16> the entity type owning the sixteenth column
+	 * @param <T17> the entity type owning the seventeenth column
+	 * @param <T18> the entity type owning the eighteenth column
+	 * @param <T19> the entity type owning the nineteenth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17,
@@ -897,11 +1502,72 @@ public final class Linq {
 	}
 
 	/**
-	 * SELECT of 20 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style wrapping.
+	 * SELECT of 20 explicitly aliased bare columns — avoids any {@code typedCol(...)}-style
+	 * wrapping.
 	 *
 	 * <p>Example: {@code SELECT(User::id, "id", User::name, "name")} &rarr;
 	 * {@code select id as id, name as name}.</p>
 	 *
+	 * @param first the first column getter (method reference); must not be {@code null}
+	 * @param firstAlias the first column's alias; must not be {@code null}
+	 * @param second the second column getter (method reference); must not be {@code null}
+	 * @param secondAlias the second column's alias; must not be {@code null}
+	 * @param third the third column getter (method reference); must not be {@code null}
+	 * @param thirdAlias the third column's alias; must not be {@code null}
+	 * @param fourth the fourth column getter (method reference); must not be {@code null}
+	 * @param fourthAlias the fourth column's alias; must not be {@code null}
+	 * @param fifth the fifth column getter (method reference); must not be {@code null}
+	 * @param fifthAlias the fifth column's alias; must not be {@code null}
+	 * @param sixth the sixth column getter (method reference); must not be {@code null}
+	 * @param sixthAlias the sixth column's alias; must not be {@code null}
+	 * @param seventh the seventh column getter (method reference); must not be {@code null}
+	 * @param seventhAlias the seventh column's alias; must not be {@code null}
+	 * @param eighth the eighth column getter (method reference); must not be {@code null}
+	 * @param eighthAlias the eighth column's alias; must not be {@code null}
+	 * @param ninth the ninth column getter (method reference); must not be {@code null}
+	 * @param ninthAlias the ninth column's alias; must not be {@code null}
+	 * @param tenth the tenth column getter (method reference); must not be {@code null}
+	 * @param tenthAlias the tenth column's alias; must not be {@code null}
+	 * @param eleventh the eleventh column getter (method reference); must not be {@code null}
+	 * @param eleventhAlias the eleventh column's alias; must not be {@code null}
+	 * @param twelfth the twelfth column getter (method reference); must not be {@code null}
+	 * @param twelfthAlias the twelfth column's alias; must not be {@code null}
+	 * @param thirteenth the thirteenth column getter (method reference); must not be {@code null}
+	 * @param thirteenthAlias the thirteenth column's alias; must not be {@code null}
+	 * @param fourteenth the fourteenth column getter (method reference); must not be {@code null}
+	 * @param fourteenthAlias the fourteenth column's alias; must not be {@code null}
+	 * @param fifteenth the fifteenth column getter (method reference); must not be {@code null}
+	 * @param fifteenthAlias the fifteenth column's alias; must not be {@code null}
+	 * @param sixteenth the sixteenth column getter (method reference); must not be {@code null}
+	 * @param sixteenthAlias the sixteenth column's alias; must not be {@code null}
+	 * @param seventeenth the seventeenth column getter (method reference); must not be {@code null}
+	 * @param seventeenthAlias the seventeenth column's alias; must not be {@code null}
+	 * @param eighteenth the eighteenth column getter (method reference); must not be {@code null}
+	 * @param eighteenthAlias the eighteenth column's alias; must not be {@code null}
+	 * @param nineteenth the nineteenth column getter (method reference); must not be {@code null}
+	 * @param nineteenthAlias the nineteenth column's alias; must not be {@code null}
+	 * @param twentieth the twentieth column getter (method reference); must not be {@code null}
+	 * @param twentiethAlias the twentieth column's alias; must not be {@code null}
+	 * @param <T1> the entity type owning the first column
+	 * @param <T2> the entity type owning the second column
+	 * @param <T3> the entity type owning the third column
+	 * @param <T4> the entity type owning the fourth column
+	 * @param <T5> the entity type owning the fifth column
+	 * @param <T6> the entity type owning the sixth column
+	 * @param <T7> the entity type owning the seventh column
+	 * @param <T8> the entity type owning the eighth column
+	 * @param <T9> the entity type owning the ninth column
+	 * @param <T10> the entity type owning the tenth column
+	 * @param <T11> the entity type owning the eleventh column
+	 * @param <T12> the entity type owning the twelfth column
+	 * @param <T13> the entity type owning the thirteenth column
+	 * @param <T14> the entity type owning the fourteenth column
+	 * @param <T15> the entity type owning the fifteenth column
+	 * @param <T16> the entity type owning the sixteenth column
+	 * @param <T17> the entity type owning the seventeenth column
+	 * @param <T18> the entity type owning the eighteenth column
+	 * @param <T19> the entity type owning the nineteenth column
+	 * @param <T20> the entity type owning the twentieth column
 	 * @return the {@code SELECT} phase, which requires a {@link SelectStep#ㅤFROMㅤ(Class) FROM} next
 	 */
 	public static <T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17,
@@ -949,6 +1615,7 @@ public final class Linq {
 				Expr.typedCol(nineteenth).ㅤAS(nineteenthAlias),
 				Expr.typedCol(twentieth).ㅤAS(twentiethAlias)));
 	}
+
 
 
 	/**

@@ -11,10 +11,15 @@ import java.io.Serializable;
 import java.util.function.Function;
 
 /**
- * A type-safe column reference whose Java result type is preserved, e.g. {@code Order::getId} typed
- * as {@code Function<Order, Long>} rather than erased to {@code Object} like {@link Col}. Used via
- * {@link Linq#typedCol(TypedCol)} so a bare-column {@code SELECT} can infer its result type from the
- * getter itself, without an explicit {@code Class} argument at {@link Q#via(jakarta.persistence.EntityManager)}.
+ * A type-safe column reference, e.g. a getter of an entity such as {@code Order::getId}, typed as
+ * {@code Function<Order, Long>} — unlike a raw method reference used as {@code Object}, its Java
+ * result type {@code R} is preserved. This is the DSL's sole column-reference type, accepted bare
+ * (as a method reference, no wrapping needed) throughout {@code SELECT}, {@code WHERE}, joins,
+ * comparisons and aggregate functions.
+ *
+ * <p>It extends {@link Serializable} so that the property name and declaring entity behind a method
+ * reference can be recovered at runtime (via {@code SerializedLambda}) when rendering HQL — see
+ * {@link Names}.</p>
  *
  * @param <T> the entity type the column is read from
  * @param <R> the Java type of the column
